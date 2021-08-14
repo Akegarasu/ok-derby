@@ -1,0 +1,64 @@
+{
+  "name": "ok-derby-frontend",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "serve": "vue-cli-service serve",
+    "dev": "vue-cli-service serve",
+    "build": "vue-cli-service build",
+    "lint": "vue-cli-service lint"
+  },
+  "dependencies": {
+    "axios": "^0.21.1",
+    "bootstrap": "4.3.1",
+    "bootstrap-vue": "2.0.0-rc.15",
+    "chart.js": "2.9.3",
+    "core-js": "3.6.5",
+    "flatpickr": "4.6.3",
+    "good-storage": "^1.1.1",
+    "nouislider": "14.6.0",
+    "register-service-worker": "1.7.1",
+    "vue": "2.6.11",
+    "vue-chartjs": "3.5.0",
+    "vue-clipboard2": "0.3.1",
+    "vue-flatpickr-component": "8.1.5",
+    "vue-router": "3.3.4",
+    "vue2-transitions": "0.3.0"
+  },
+  "devDependencies": {
+    "@vue/cli-plugin-babel": "^4.4.6",
+    "@vue/cli-plugin-eslint": "^4.4.6",
+    "@vue/cli-plugin-pwa": "^4.4.6",
+    "@vue/cli-service": "^4.4.6",
+    "babel-eslint": "^10.1.0",
+    "eslint": "^7.3.1",
+    "eslint-plugin-vue": "^6.2.2",
+    "node-sass": "^4.14.1",
+    "sass-loader": "^8.0.2",
+    "vue-template-compiler": "2.6.11"
+  },
+  "eslintConfig": {
+    "root": true,
+    "env": {
+      "node": true
+    },
+    "extends": [
+      "plugin:vue/essential",
+      "eslint:recommended"
+    ],
+    "rules": {},
+    "parserOptions": {
+      "parser": "babel-eslint"
+    }
+  },
+  "postcss": {
+    "plugins": {
+      "autoprefixer": {}
+    }
+  },
+  "browserslist": [
+    "> 1%",
+    "last 2 versions",
+    "not ie <= 8"
+  ]
+}
