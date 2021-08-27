@@ -15,7 +15,7 @@
             <a href="https://anzu.link" class="nav-link" target="_blank">Blog</a>
           </li>
           <li class="nav-item">
-            <a href="https://github.com/Akegarasu/ok-derby" class="nav-link" target="_blank">License</a>
+            <a href="https://github.com/Akegarasu/ok-derby/blob/main/LICENSE" class="nav-link" target="_blank">License</a>
           </li>
         </ul>
       </div>
