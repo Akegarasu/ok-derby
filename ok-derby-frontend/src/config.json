@@ -1,0 +1,60 @@
+{
+    "backend": "http://localhost:12780",
+    "availableJobs": [
+        {
+            "name": "team_race"
+        },
+        {
+            "name": "champions_meeting"
+        },
+        {
+            "name": "legend_race"
+        },
+        {
+            "name": "nurturing"
+        },
+        {
+            "name": "daily_race_money"
+        },
+        {
+            "name": "daily_race_sp"
+        },
+        {
+            "name": "roulette_derby"
+        }
+    ],
+    "plugins": [
+        {
+            "name": "afk",
+            "checked": false
+        },
+        {
+            "name": "auto_crane",
+            "checked": false
+        },
+        {
+            "name": "limited_sale_buy_everything",
+            "checked": false
+        },
+        {
+            "name": "limited_sale_buy_first_3",
+            "checked": false
+        },
+        {
+            "name": "more_g1",
+            "checked": false
+        },
+        {
+            "name": "no_event_prompt",
+            "checked": false
+        },
+        {
+            "name": "no_ocr_prompt",
+            "checked": false
+        },
+        {
+            "name": "use_legacy_screenshot",
+            "checked": false
+        }
+    ]
+}
