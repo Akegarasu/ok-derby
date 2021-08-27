@@ -27,11 +27,11 @@
           <all-jobs />
         </div>
       </div>
-      <div class="row" style="margin-bottom: 10px">
+      <!-- <div class="row" style="margin-bottom: 10px">
         <div class="col justify-content-center">
           <commandUsing />
         </div>
-      </div>
+      </div> -->
       <div class="row" style="margin-bottom: 10px">
         <div class="col justify-content-center">
           <log />
@@ -58,7 +58,7 @@
 
 import BaseProgress from "../components/BaseProgress";
 import FastUsing from "./components/FastUsing";
-import commandUsing from "./components/CommandUsing";
+// import commandUsing from "./components/CommandUsing";
 import AllJobs from "./components/AllJobs";
 import Log from "./components/Log";
 
@@ -66,7 +66,7 @@ export default {
   components: {
     BaseProgress,
     FastUsing,
-    commandUsing,
+    // commandUsing,
     AllJobs,
     Log,
   },
