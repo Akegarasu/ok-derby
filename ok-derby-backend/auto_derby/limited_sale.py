@@ -31,3 +31,6 @@ def buy_first_n(n: int) -> None:
     action.wait_image(templates.RETURN_BUTTON)
     for _, pos in action.match_image_until_disappear(templates.RETURN_BUTTON):
         action.tap(pos)
+
+def ignore() -> None:
+    action.wait_tap_image(templates.CANCEL_BUTTON)
