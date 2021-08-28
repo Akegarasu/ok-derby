@@ -1,0 +1,5 @@
+# Code Generated from {{ templateFiles }}, DO NOT EDIT.
+
+{{- range .Files }}
+{{ . | snakecase | upper | replace "." "_" | trimSuffix "_PNG" }} = "{{.}}"
+{{- end }}
