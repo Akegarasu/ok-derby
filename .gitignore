@@ -1,5 +1,7 @@
 .idea
 .vscode
+testing/
+ok-derby.log.*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
