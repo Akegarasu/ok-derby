@@ -19,7 +19,11 @@
             <p class="text-white mt-0 mb-5">
               此处为高级设置，普通用户请勿随意更改
             </p>
-            <a href="#!" class="btn btn-info">查看帮助</a>
+            <a
+              href="https://github.com/Akegarasu/ok-derby/"
+              class="btn btn-info"
+              >查看帮助</a
+            >
           </div>
         </div>
       </div>
@@ -132,26 +136,7 @@
                       />
                     </div>
                   </div>
-                  <div class="row">
-                    <div class="col-lg-6">
-                      <base-input
-                        alternative=""
-                        label="使用旧的截图模式"
-                        placeholder="use_legacy_screenshot"
-                        input-classes="form-control-alternative"
-                        v-model="model.use_legacy_screenshot"
-                      />
-                    </div>
-                    <div class="col-lg-6">
-                      <base-input
-                        alternative=""
-                        label="OCR数据路径"
-                        placeholder="ocr_data_path"
-                        input-classes="form-control-alternative"
-                        v-model="model.ocr_data_path"
-                      />
-                    </div>
-                  </div>
+
                   <div class="row">
                     <div class="col-lg-6">
                       <base-input
@@ -162,14 +147,49 @@
                         v-model="model.ocr_image_path"
                       />
                     </div>
+
                     <div class="col-lg-6">
                       <base-input
                         alternative=""
-                        label="禁用OCR询问"
-                        placeholder="ocr_prompt_disabled"
+                        label="OCR数据路径"
+                        placeholder="ocr_data_path"
                         input-classes="form-control-alternative"
-                        v-model="model.ocr_prompt_disabled"
+                        v-model="model.ocr_data_path"
                       />
+                    </div>
+                  </div>
+
+                  <div class="row" style="margin-bottom: 10px">
+                    <div class="col justify-content-center">
+                      <div class="card">
+                        <div class="card-header">
+                          <div class="row align-items-center">
+                            <div class="col">
+                              <h3 class="mb-0">可选项</h3>
+                            </div>
+                          </div>
+                        </div>
+                        <div class="card-body">
+                          <div class="row">
+                            <div class="col">
+                              <p>禁用OCR询问</p>
+                            </div>
+                            <div class="col">
+                              <base-switch v-model="model.ocr_prompt_disabled">
+                              </base-switch>
+                            </div>
+                          </div>
+                          <div class="row">
+                            <div class="col">
+                              <p>使用旧的截图模式</p>
+                            </div>
+                            <div class="col">
+                              <base-switch v-model="model.use_legacy_screenshot">
+                              </base-switch>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
