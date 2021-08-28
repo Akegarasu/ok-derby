@@ -172,7 +172,7 @@
                         <div class="card-body">
                           <div class="row">
                             <div class="col">
-                              <p>禁用OCR询问</p>
+                              禁用OCR询问
                             </div>
                             <div class="col">
                               <base-switch v-model="model.ocr_prompt_disabled">
@@ -181,10 +181,12 @@
                           </div>
                           <div class="row">
                             <div class="col">
-                              <p>使用旧的截图模式</p>
+                              使用旧的截图模式
                             </div>
                             <div class="col">
-                              <base-switch v-model="model.use_legacy_screenshot">
+                              <base-switch
+                                v-model="model.use_legacy_screenshot"
+                              >
                               </base-switch>
                             </div>
                           </div>
