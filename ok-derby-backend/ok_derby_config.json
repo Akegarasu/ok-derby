@@ -1,0 +1,1 @@
+{"ADB_ADDRESS": "", "PLUGINS": [], "use_legacy_screenshot": false, "ocr_data_path": "ocr_labels.json", "ocr_image_path": "", "ocr_prompt_disabled": false, "single_mode_target_training_levels": "5,3,3,0,1", "pause_if_race_order_gt": 5, "single_mode_race_data_path": "single_mode_races.jsonl", "single_mode_choice_path": "single_mode_choices.json"}
