@@ -126,7 +126,7 @@
                         v-model="model.ADB_ADDRESS"
                       />
                     </div>
-                    <div class="col-lg-6">
+                    <!-- <div class="col-lg-6">
                       <base-input
                         alternative=""
                         label="插件"
@@ -134,7 +134,7 @@
                         input-classes="form-control-alternative"
                         v-model="model.PLUGINS"
                       />
-                    </div>
+                    </div> -->
                   </div>
 
                   <div class="row">
@@ -312,7 +312,6 @@
 <script>
 import axios from "axios";
 import CONFIG from "@/config.json";
-import storage from "good-storage";
 
 export default {
   name: "settings",
@@ -325,8 +324,8 @@ export default {
       },
       model: {
         ADB_ADDRESS: "", // ADB Address
-        PLUGINS:
-          storage.get("onPlugins") == undefined ? "" : storage.get("onPlugins"), // Plugins
+        // PLUGINS:
+        //   storage.get("onPlugins") == undefined ? "" : storage.get("onPlugins"), // Plugins
         use_legacy_screenshot: "",
         ocr_data_path: "",
         ocr_image_path: "",
