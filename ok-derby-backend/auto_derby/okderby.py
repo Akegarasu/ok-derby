@@ -14,6 +14,9 @@ LOGGER = logging.getLogger(__name__)
 def start(job_name: str,
           plugins: str,
           adb_address: Optional[str] = None) -> None:
+    if adb_address == None:
+        adb_address = config.ADB_ADDRESS
+
     avaliable_jobs = {
         "team_race": jobs.team_race,
         "champions_meeting": jobs.champions_meeting,
