@@ -3,8 +3,6 @@
 import tornado.web
 
 import api.base
-# import config
-# import update
 
 
 # noinspection PyAbstractClass

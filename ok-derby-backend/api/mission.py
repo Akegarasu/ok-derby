@@ -1,17 +1,16 @@
 import logging
 import api.base
+
 from utils.util import is_game_running
-from models.controller import missionController
+
 from models.resp import response
+from models.controller import missionController
 
 logger = logging.getLogger(__name__)
 
 
 # noinspection PyAbstractClass
 class StartHandler(api.base.ApiHandler):
-    async def get(self):
-        self.write(response.error())
-
     async def post(self):
         if missionController.get_mission_status() == "running":
             self.write(response.error("已经有任务正在进行了"))
@@ -31,16 +30,10 @@ class StartHandler(api.base.ApiHandler):
             response.ok('启动成功')
         )
         logger.info("Start Success")
-        
 
 
 # noinspection PyAbstractClass
 class StopHandler(api.base.ApiHandler):
-    async def get(self):
-        self.write({
-            'code': -1
-        })
-
     async def post(self):
         if missionController.get_mission_status() == 'running':
             missionController.stop_mission()
@@ -51,3 +44,11 @@ class StopHandler(api.base.ApiHandler):
             self.write(
                 response.error('没有任务正在进行')
             )
+
+
+# noinspection PyAbstractClass
+class StatusHandler(api.base.ApiHandler):
+    async def get(self):
+        self.write({
+            'code': -1
+        })
