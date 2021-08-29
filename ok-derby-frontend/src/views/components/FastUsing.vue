@@ -6,12 +6,10 @@
           <div class="col">
             <h3 class="mb-0">快捷操作</h3>
           </div>
-          <div class="col col-md-auto">
-            <badge :type="badgeType">{{ jobStat }}</badge>
-          </div>
-          <div class="col col-md-1 text-right">
+          <div class="col text-right">
+            <badge :type="badgeType" style="margin-right: 15px">{{ jobStat }}</badge>
             <base-button size="sm" type="primary" @click="showPlugins = true">
-              插件
+              选择插件
             </base-button>
           </div>
         </div>
