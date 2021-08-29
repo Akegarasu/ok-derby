@@ -8,4 +8,4 @@ copy .\version .\dist\main\
 xcopy .\auto_derby\templates .\dist\main\auto_derby\templates\ /s /f /h
 xcopy ..\ok-derby-frontend\dist .\dist\main\frontend\dist\ /s /f /h
 md .\dist\main\log
-.\dist\main\main.exe
+REM .\dist\main\main.exe

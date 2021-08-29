@@ -17,7 +17,7 @@ PLUGIN_DESCRIPTION = {
     "hello_world": "最简单的打印 Hello world 插件实现。",
     "limited_sale_buy_everything": "限时商店购买所有可购买物品",
     "limited_sale_buy_first_3": "限时商店购买前三个可购买物品",
-    "limited_sale_close": "遇到限时商店直接关闭",
+    "limited_sale_ignore": "遇到限时商店直接关闭",
     "more_g1": "更倾向于 G1 比赛，重复多次会增强效果。",
     "umapyoi": "URA 决胜结束后播放 live",
     "auto_crane": "自动抓娃娃，实战曾经 3 次均命中",
