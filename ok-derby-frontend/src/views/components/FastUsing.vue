@@ -6,10 +6,13 @@
           <div class="col">
             <h3 class="mb-0">快捷操作</h3>
           </div>
-          <div class="col text-right">
-            <base-button size="sm" type="primary" @click="showPlugins = true"
-              >选择插件</base-button
-            >
+          <div class="col col-md-auto">
+            <badge :type="badgeType">{{ jobStat }}</badge>
+          </div>
+          <div class="col col-md-1 text-right">
+            <base-button size="sm" type="primary" @click="showPlugins = true">
+              插件
+            </base-button>
           </div>
         </div>
       </div>
@@ -24,7 +27,9 @@
           type="primary"
           @click="startJob('nurturing', true)"
           style="margin-bottom: 10px"
-          v-tooltip.top-center="'该选项只会加载afk插件，如果需要其他插件请使用育成手动选择插件'"
+          v-tooltip.top-center="
+            '该选项只会加载afk插件，如果需要其他插件请使用育成手动选择插件'
+          "
           >无人值守育成（全自动）</base-button
         >
         <base-button
@@ -80,7 +85,7 @@
           >
             <div class="col">
               <p v-tooltip.left="i.description">
-                {{i.name}}
+                {{ i.name }}
               </p>
             </div>
             <div class="col">
@@ -111,6 +116,8 @@ export default {
     return {
       plugins: {},
       showPlugins: false,
+      jobName: "",
+      jobStatus: "stopped",
     };
   },
   methods: {
@@ -191,9 +198,31 @@ export default {
       storage.set("onPlugins", onPlugins);
       this.showPlugins = false;
     },
+    getJobStatus() {
+      axios
+        .get(CONFIG.backend + "/api/status")
+        .then((response) => {
+          return response.data.data;
+        })
+        .then((data) => {
+          this.jobStatus = data.status;
+          this.jobName = data.job_name;
+        });
+    },
   },
   mounted() {
     this.loadPlugins();
+    setInterval(this.getJobStatus, 1000);
+  },
+  computed: {
+    jobStat() {
+      return this.jobStatus == "running"
+        ? `当前任务：${this.jobName}`
+        : "当前无任务进行中";
+    },
+    badgeType() {
+      return this.jobStatus == "running" ? "danger" : "success";
+    },
   },
 };
 </script>
@@ -280,16 +309,16 @@ export default {
     }
   }
 
-  &[aria-hidden='true'] {
+  &[aria-hidden="true"] {
     visibility: hidden;
     opacity: 0;
-    transition: opacity .15s, visibility .15s;
+    transition: opacity 0.15s, visibility 0.15s;
   }
 
-  &[aria-hidden='false'] {
+  &[aria-hidden="false"] {
     visibility: visible;
     opacity: 1;
-    transition: opacity .15s;
+    transition: opacity 0.15s;
   }
 }
 </style>
