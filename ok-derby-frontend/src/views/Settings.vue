@@ -172,7 +172,7 @@
                         <div class="card-body">
                           <div class="row">
                             <div class="col">
-                              禁用OCR询问
+                              禁用OCR询问（会被插件覆盖）
                             </div>
                             <div class="col">
                               <base-switch v-model="model.ocr_prompt_disabled">
