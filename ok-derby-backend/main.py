@@ -67,6 +67,7 @@ def run_server(host, port, debug):
         (r"/api/plugins", api.plugins.PluginHandler),
         (r"/api/start", api.mission.StartHandler),
         (r"/api/stop", api.mission.StopHandler),
+        (r"/api/status", api.mission.StatusHandler),
         (
             r"/(.*)",
             api.main.MainHandler,

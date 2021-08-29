@@ -49,6 +49,9 @@ class StopHandler(api.base.ApiHandler):
 # noinspection PyAbstractClass
 class StatusHandler(api.base.ApiHandler):
     async def get(self):
-        self.write({
-            'code': -1
-        })
+        self.write(response.ok(
+            {
+                "status": missionController.get_mission_status(),
+                "job_name": missionController.job_name,
+            }
+        ))
