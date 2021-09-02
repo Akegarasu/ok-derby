@@ -11,8 +11,8 @@
     ></span>
     <side-bar
       :background-color="sidebarBackground"
-      short-title="Argon"
-      title="Argon"
+      short-title="RUA！"
+      title="RUA！"
     >
       <template slot="links">
         <sidebar-item
