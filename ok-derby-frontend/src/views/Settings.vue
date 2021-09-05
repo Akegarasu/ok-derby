@@ -318,8 +318,8 @@ export default {
   data() {
     return {
       version: {
-        OK_DERBY_FRONTEND: "0.3",
-        OK_DERBY_BACKEND: "0.3",
+        OK_DERBY_FRONTEND: "0.4",
+        OK_DERBY_BACKEND: "0.4",
         AUTO_DERBY: "1.3",
       },
       model: {

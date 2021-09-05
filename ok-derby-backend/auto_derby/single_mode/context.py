@@ -1,8 +1,15 @@
 # -*- coding=UTF-8 -*-
 # pyright: strict
+
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from . import go_out
+
 import functools
+import logging
 import os
 from typing import Callable, List, Set, Text, Tuple, Type
 
@@ -12,7 +19,9 @@ import numpy as np
 from PIL.Image import Image
 from PIL.Image import fromarray as image_from_array
 
-from .. import imagetools, mathtools, ocr, template, templates
+from .. import imagetools, mathtools, ocr, scenes, template, templates, texttools
+
+_LOGGER = logging.getLogger(__name__)
 
 
 class g:
@@ -41,9 +50,9 @@ def _ocr_date(img: Image) -> Tuple[int, int, int]:
 
     text = ocr.text(image_from_array(binary_img))
 
-    if text == "ジュニア級デビュー前":
+    if texttools.compare(text, "ジュニア級デビュー前") > 0.8:
         return (1, 0, 0)
-    if text == "ファイナルズ開催中":
+    if texttools.compare(text, "ファイナルズ開催中") > 0.8:
         return (4, 0, 0)
     year_end = text.index("級") + 1
     month_end = year_end + text[year_end:].index("月") + 1
@@ -51,7 +60,8 @@ def _ocr_date(img: Image) -> Tuple[int, int, int]:
     month_text = text[year_end:month_end]
     date_text = text[month_end:]
 
-    year = {"ジュニア級": 1, "クラシック級": 2, "シニア級": 3}[year_text]
+    year_dict = {"ジュニア級": 1, "クラシック級": 2, "シニア級": 3}
+    year = year_dict[texttools.choose(year_text, year_dict.keys())]
     month = int(month_text[:-1])
     date = {"前半": 1, "後半": 2}[date_text]
     return (year, month, date)
@@ -157,6 +167,21 @@ def _recognize_property(img: Image) -> int:
     return int(ocr.text(imagetools.pil_image(binary_img)))
 
 
+def _recognize_scenario(rp: mathtools.ResizeProxy, img: Image) -> Text:
+    _, pos = next(
+        template.match(
+            img,
+            templates.SINGLE_MODE_CLASS_DETAIL_BUTTON,
+        )
+    )
+    radius = rp.vector(60, 540)
+    if mathtools.distance(rp.vector2((114, 165), 540), pos) < radius:
+        return Context.SCENARIO_URA
+    if mathtools.distance(rp.vector2((126, 591), 540), pos) < radius:
+        return Context.SCENARIO_AOHARU
+    return Context.SCENARIO_UNKNOWN
+
+
 class Context:
     MOOD_VERY_BAD = (0.8, 0.95)
     MOOD_BAD = (0.9, 0.98)
@@ -188,6 +213,12 @@ class Context:
         STATUS_G,
     )
 
+    # master.mdb
+    # SELECT text FROM text_data WHERE category=119;
+    SCENARIO_UNKNOWN = ""
+    SCENARIO_URA = "新設！　URAファイナルズ！！"
+    SCENARIO_AOHARU = "アオハル杯～輝け、チームの絆～"
+
     @staticmethod
     def new() -> Context:
         return g.context_class()
@@ -201,6 +232,7 @@ class Context:
         # (year, month, half-month), 1-base
         self.date = (0, 0, 0)
         self.vitality = 0.0
+        self.max_vitality = 100
         self.mood = Context.MOOD_NORMAL
         self.conditions: Set[int] = set()
         self.fan_count = 0
@@ -238,6 +270,10 @@ class Context:
 
         self._next_turn_cb: List[Callable[[], None]] = []
 
+        self.scene: scenes.Scene = scenes.UnknownScene()
+        self.go_out_options: Tuple[go_out.Option, ...] = ()
+        self.scenario = Context.SCENARIO_UNKNOWN
+
     def next_turn(self) -> None:
         if self.date in ((1, 0, 0), (4, 0, 0)):
             self._extra_turn_count += 1
@@ -246,13 +282,20 @@ class Context:
 
         while self._next_turn_cb:
             self._next_turn_cb.pop()()
+        _LOGGER.info("next turn: %s", self)
 
     def defer_next_turn(self, cb: Callable[[], None]) -> None:
         self._next_turn_cb.append(cb)
 
     def update_by_command_scene(self, screenshot: Image) -> None:
         rp = mathtools.ResizeProxy(screenshot.width)
-        date_bbox = rp.vector4((10, 27, 140, 43), 466)
+        self.scenario = _recognize_scenario(rp, screenshot)
+        if not self.scenario:
+            raise ValueError("unknown scenario")
+        date_bbox = {
+            Context.SCENARIO_URA: rp.vector4((10, 27, 140, 43), 466),
+            Context.SCENARIO_AOHARU: rp.vector4((125, 32, 278, 48), 540),
+        }[self.scenario]
         vitality_bbox = rp.vector4((148, 106, 327, 108), 466)
 
         _, detail_button_pos = next(
@@ -270,9 +313,23 @@ class Context:
 
         self.vitality = _recognize_vitality(screenshot.crop(vitality_bbox))
 
-        mood_color = screenshot.getpixel(rp.vector2((395, 113), 466))
-        assert isinstance(mood_color, tuple), mood_color
-        self.mood = _recognize_mood((mood_color[0], mood_color[1], mood_color[2]))
+        # mood_pos change when vitality increase
+        for index, mood_pos in enumerate(
+            (
+                rp.vector2((395, 113), 466),
+                rp.vector2((473, 133), 540),
+            )
+        ):
+            mood_color = screenshot.getpixel(mood_pos)
+            assert isinstance(mood_color, tuple), mood_color
+            try:
+                self.mood = _recognize_mood(
+                    (mood_color[0], mood_color[1], mood_color[2])
+                )
+                break
+            except ValueError:
+                if index == 1:
+                    raise
 
         self.speed = _recognize_property(screenshot.crop(speed_bbox))
         self.stamina = _recognize_property(screenshot.crop(stamina_bbox))
@@ -328,8 +385,18 @@ class Context:
         self.conditions = _recognize_conditions(screenshot.crop(conditions_bbox))
 
     def __str__(self):
+        msg = ""
+        if self.go_out_options:
+            msg += ",go_out="
+            msg += " ".join(
+                (
+                    f"{i.current_event_count}/{i.total_event_count}"
+                    for i in self.go_out_options
+                )
+            )
         return (
             "Context<"
+            f"scenario={self.scenario},"
             f"turn={self.turn_count()},"
             f"mood={self.mood},"
             f"vit={self.vitality:.3f},"
@@ -343,6 +410,7 @@ class Context:
             f"distance={''.join(i[1] for i in (self.sprint, self.mile, self.intermediate, self.long))},"
             f"style={''.join(i[1] for i in (self.last, self.middle, self.head, self.lead))},"
             f"condition={functools.reduce(lambda a, b: a | b, self.conditions, 0)}"
+            f"{msg}"
             ">"
         )
 
@@ -366,9 +434,21 @@ class Context:
 
     @property
     def is_summer_camp(self) -> bool:
-        return self.date[1:] in ((7, 1), (7, 2), (8, 1))
+        return self.date[0] in (2, 3) and self.date[1:] in (
+            (7, 1),
+            (7, 2),
+            (8, 1),
+            (8, 2),
+        )
 
     def expected_score(self) -> float:
+        import warnings
+
+        warnings.warn(
+            "expected score is deprecated, use rest/go-out command score instead",
+            DeprecationWarning,
+        )
+
         expected_score = 15 + self.turn_count() * 10 / 24
 
         can_heal_condition = not self.is_summer_camp
