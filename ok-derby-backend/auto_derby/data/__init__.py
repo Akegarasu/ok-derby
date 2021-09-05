@@ -8,7 +8,8 @@ from typing import Text
 import os
 import sys
 
-__dirname__ = os.path.dirname(os.path.abspath(__file__)) if hasattr(sys, 'frozen') else os.path.dirname(sys.executable)
+__dirname__ = os.path.join(os.path.dirname(sys.executable), "data") \
+                if hasattr(sys, "frozen") else os.path.dirname(os.path.abspath(__file__))
 
 
 def path(*paths: Text) -> Text:
