@@ -3,19 +3,18 @@
 
 
 import csv
-import errno
 import json
 import logging
 import os
 import warnings
 from pathlib import Path
-from typing import Dict, List, Optional, Text, Tuple
+from typing import Any, Dict, List, Optional, Text, Tuple
 
 import cv2
 import numpy as np
 from PIL.Image import Image, fromarray
 
-from . import imagetools, terminal
+from . import data, imagetools, terminal
 
 LOGGER = logging.getLogger(__name__)
 
@@ -28,8 +27,12 @@ class g:
     labels: Dict[Text, Text] = {}
 
 
+def _data_key():
+    return (len(g.labels), g.data_path)
+
+
 class _g:
-    loaded_data_path = ""
+    loaded_data_key: Any = None
 
 
 def _migrate_json_to_csv() -> None:
@@ -40,40 +43,52 @@ def _migrate_json_to_csv() -> None:
     g.data_path = str(Path(path).with_suffix(".csv"))
     try:
         with open(path, "r", encoding="utf-8") as f:
-            g.labels = json.load(f)
+            labels = json.load(f)
         warnings.warn(
             f"migrating json ocr labels to {g.data_path}, this support will be removed at next major version.",
             DeprecationWarning,
         )
-        for k, v in g.labels.items():
-            _label(k, v)
+        for k, v in labels.items():
+            _label(path, k, v)
         os.rename(path, path + "~")
-    except OSError as ex:
-        if ex.errno == errno.ENOENT:
-            pass
-        else:
-            raise
+    except FileNotFoundError:
+        pass
+
+
+def _load(path: Text):
+    with open(path, "r", encoding="utf-8") as f:
+        for k, v in csv.reader(f):
+            g.labels[k] = v
 
 
 def reload() -> None:
+    g.labels.clear()
+    _load(data.path("ocr_labels.csv"))
     _migrate_json_to_csv()
     try:
-        with open(g.data_path, "r", encoding="utf-8") as f:
-            g.labels = dict((k, v) for k, v in csv.reader(f))
-    except OSError:
+        _load(g.data_path)
+    except FileNotFoundError:
         pass
-    _g.loaded_data_path = g.data_path
+    _g.loaded_data_key = _data_key()
 
 
 def reload_on_demand() -> None:
-    if _g.loaded_data_path != g.data_path:
+    if _data_key() != _g.loaded_data_key:
         reload()
 
 
-def _label(image_hash: Text, value: Text) -> None:
+def _label(path: Text, image_hash: Text, value: Text) -> None:
     g.labels[image_hash] = value
-    with open(g.data_path, "a", encoding="utf-8", newline="") as f:
-        csv.writer(f).writerow((image_hash, value))
+
+    def _do():
+        with open(path, "a", encoding="utf-8", newline="") as f:
+            csv.writer(f).writerow((image_hash, value))
+
+    try:
+        _do()
+    except FileNotFoundError:
+        os.makedirs(os.path.dirname(path))
+        _do()
 
 
 _PREVIEW_PADDING = 4
@@ -124,7 +139,7 @@ def _prompt(img: np.ndarray, h: Text, value: Text, similarity: float) -> Text:
                 )
     finally:
         close_img()
-    _label(h, ret)
+    _label(g.data_path, h, ret)
     LOGGER.info("labeled: hash=%s, value=%s", h, ret)
     return ret
 
@@ -164,6 +179,12 @@ def _rect2bbox(rect: Tuple[int, int, int, int]) -> Tuple[int, int, int, int]:
     x, y, w, h = rect
     l, t, r, b = x, y, x + w, y + h
     return l, t, r, b
+
+
+def _bbox2rect(bbox: Tuple[int, int, int, int]) -> Tuple[int, int, int, int]:
+    l, t, r, b = bbox
+    x, y, w, h = l, b, r - l, b - t
+    return x, y, w, h
 
 
 def _pad_bbox(v: Tuple[int, int, int, int], padding: int) -> Tuple[int, int, int, int]:
@@ -221,15 +242,34 @@ def text(img: Image, *, threshold: float = 0.8) -> Text:
     char_bbox = contours_with_bbox[0][1]
     char_non_zero_bbox = contours_with_bbox[0][1]
 
+    def _crop_char(bbox: Tuple[int, int, int, int], img: np.ndarray):
+        non_zero_pos_list = cv2.findNonZero(img)
+        l0, t0, r0, b0 = bbox
+        _, _, w0, h0 = _bbox2rect(bbox)
+        non_zero_rect = cv2.boundingRect(non_zero_pos_list)
+        _, _, w1, h1 = non_zero_rect
+
+        l1, t1, r1, b1 = _rect2bbox(non_zero_rect)
+        ml, mt, mr, mb = l1, t1, w0 - r1, h0 - b1
+        ret = img
+        if w1 > max_char_width * 0.3:
+            l0 += ml
+            r0 -= mr
+            ret = ret[:, l1:r1]
+        if h1 > max_char_height * 0.5:
+            t0 += mt
+            b0 -= mb
+            ret = ret[t1:b1]
+
+        return (l0, t0, r0, b0), ret
+
     def _push_char():
         if not char_parts:
             return
         mask = np.zeros_like(binary_img)
         cv2.drawContours(mask, char_parts, -1, (255,), thickness=cv2.FILLED)
         char_img = cv2.copyTo(binary_img, mask)
-        l, t, r, b = char_non_zero_bbox
-        if r - l < max_char_width * 0.5 or b - t < max_char_height * 0.8:
-            l, t, r, b = char_bbox
+        l, t, r, b = char_bbox
         char_img = char_img[t:b, l:r]
         char_img_list.append((char_bbox, char_img))
 
@@ -250,7 +290,7 @@ def text(img: Image, *, threshold: float = 0.8) -> Text:
             char_parts
             and l > char_non_zero_bbox[2]
             and (
-                l - char_non_zero_bbox[0] > max_char_width * 0.7
+                l - char_non_zero_bbox[0] > max_char_width * 0.8
                 or l - char_non_zero_bbox[2] > max_char_width * 0.2
                 or r - char_non_zero_bbox[0] > max_char_width
                 or (
@@ -290,6 +330,8 @@ def text(img: Image, *, threshold: float = 0.8) -> Text:
         char_bbox = _union_bbox(char_bbox, bbox)
     _push_char()
 
+    cropped_char_img_list = [_crop_char(bbox, img) for (bbox, img) in char_img_list]
+
     if os.getenv("DEBUG") == __name__:
         segmentation_img = cv2.cvtColor(binary_img, cv2.COLOR_GRAY2BGR)
         for i in contours:
@@ -301,14 +343,19 @@ def text(img: Image, *, threshold: float = 0.8) -> Text:
         for bbox, _ in char_img_list:
             l, t, r, b = bbox
             cv2.rectangle(chars_img, (l, t), (r, b), (0, 0, 255), thickness=1)
+        cropped_chars_img = cv2.cvtColor(binary_img, cv2.COLOR_GRAY2BGR)
+        for bbox, _ in cropped_char_img_list:
+            l, t, r, b = bbox
+            cv2.rectangle(cropped_chars_img, (l, t), (r, b), (0, 0, 255), thickness=1)
         cv2.imshow("ocr input", cv_img)
         cv2.imshow("ocr binary", binary_img)
         cv2.imshow("ocr segmentation", segmentation_img)
         cv2.imshow("ocr chars", chars_img)
+        cv2.imshow("ocr cropped chars", cropped_chars_img)
         cv2.waitKey()
         cv2.destroyAllWindows()
 
-    for _, i in char_img_list:
+    for _, i in cropped_char_img_list:
         ret += _text_from_image(i, threshold)
 
     LOGGER.debug("ocr result: %s", ret)

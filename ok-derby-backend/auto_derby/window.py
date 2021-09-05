@@ -8,7 +8,7 @@ import sys
 import threading
 import time
 from ctypes import windll
-from typing import Callable, Dict, Literal, Optional, Set, Text, Tuple
+from typing import Callable, Optional, Set, Text, Tuple
 
 import mouse
 import PIL.Image
@@ -18,6 +18,10 @@ import win32gui
 import win32ui
 
 LOGGER = logging.getLogger(__name__)
+
+
+class _g:
+    init_once = False
 
 
 class g:
@@ -61,13 +65,10 @@ def message_box(
     return _close
 
 
-_INIT_ONCE: Dict[Literal["value"], bool] = {"value": False}
-
-
 def init():
-    if _INIT_ONCE["value"]:
+    if _g.init_once:
         return
-    _INIT_ONCE["value"] = True
+    _g.init_once = True
     # Window size related function will returns incorrect result
     # if we don't make python process dpi aware
     # https://github.com/NateScarlet/auto-derby/issues/11
@@ -191,6 +192,15 @@ _WIN32_WINNT = _win_ver()
 PW_CLIENT_ONLY = 1 << 0
 # https://stackoverflow.com/a/40042587
 PW_RENDERFULLCONTENT = 1 << 1 if _WIN32_WINNT >= _WIN32_WINNT_WINBLUE else 0
+if PW_RENDERFULLCONTENT == 0:
+    LOGGER.info(
+        (
+            "background screenshot not work before windows8.1, "
+            "will use legacy screenshot."
+        )
+    )
+    g.use_legacy_screenshot = True
+
 
 # https://stackoverflow.com/a/24352388
 def screenshot_print_window(h_wnd: int) -> PIL.Image.Image:
