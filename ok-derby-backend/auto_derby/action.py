@@ -28,11 +28,11 @@ def count_image(*tmpl: Union[Text, template.Specification]) -> int:
 
 
 def match_image_until_disappear(
-        *tmpl: Union[Text, template.Specification],
-        sort: Callable[
-            [Iterator[Tuple[template.Specification, Tuple[int, int]]]],
-            Iterable[Tuple[template.Specification, Tuple[int, int]]],
-        ] = lambda x: x,
+    *tmpl: Union[Text, template.Specification],
+    sort: Callable[
+        [Iterator[Tuple[template.Specification, Tuple[int, int]]]],
+        Iterable[Tuple[template.Specification, Tuple[int, int]]],
+    ] = lambda x: x,
 ) -> Iterator[Tuple[template.Specification, Tuple[int, int]]]:
     while True:
         count = 0
@@ -45,7 +45,7 @@ def match_image_until_disappear(
 
 
 def wait_image(
-        *tmpl: Union[Text, template.Specification]
+    *tmpl: Union[Text, template.Specification]
 ) -> Tuple[template.Specification, Tuple[int, int]]:
     while True and missionController.FLAG:
         try:
@@ -53,6 +53,24 @@ def wait_image(
         except StopIteration:
             time.sleep(0.01)
     return (template.Specification(""), (0, 0))
+
+
+
+def wait_image_stable(
+    *tmpl: Union[Text, template.Specification],
+    duration: float = 1.0,
+) -> Tuple[template.Specification, Tuple[int, int]]:
+    t, last_pos = wait_image(*tmpl)
+    start_time = time.time()
+    while True:
+        time.sleep(0.01)
+        _, pos = wait_image(t)
+        if pos != last_pos:
+            start_time = time.time()
+        if time.time() - start_time > duration:
+            break
+        last_pos = pos
+    return t, last_pos
 
 
 def wait_image_disappear(*tmpl: Union[Text, template.Specification]) -> None:
@@ -65,7 +83,7 @@ def wait_image_disappear(*tmpl: Union[Text, template.Specification]) -> None:
 
 
 def tap_image(
-        name: Union[Text, template.Specification], *, x: int = 0, y: int = 0
+    name: Union[Text, template.Specification], *, x: int = 0, y: int = 0
 ) -> bool:
     try:
         name, pos = next(template.match(template.screenshot(), name))
@@ -76,9 +94,14 @@ def tap_image(
 
 
 def wait_tap_image(
-        name: Union[Text, template.Specification], *, x: int = 0, y: int = 0
+    name: Union[Text, template.Specification], *, x: int = 0, y: int = 0
 ) -> None:
-    _, pos = wait_image(name)
+    _, last_pos = wait_image(name)
+    while True:
+        _, pos = wait_image(name)
+        if pos == last_pos:
+            break
+        last_pos = pos
     tap((pos[0] + x, pos[1] + y))
 
 
