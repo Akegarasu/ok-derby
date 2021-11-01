@@ -26,11 +26,13 @@ class CommandScene(Scene):
     def _enter(cls, ctx: SceneHolder) -> Scene:
         if ctx.scene.name() == "single-mode-training":
             action.tap_image(templates.RETURN_BUTTON)
-        action.wait_image_stable(
+
+        action.wait_image(
             templates.SINGLE_MODE_COMMAND_TRAINING,
             templates.SINGLE_MODE_FORMAL_RACE_BANNER,
             templates.SINGLE_MODE_URA_FINALS,
         )
+
         return cls()
 
     def to_dict(self) -> Dict[Text, Any]:
@@ -41,7 +43,14 @@ class CommandScene(Scene):
         }
 
     def recognize_class(self, ctx: single_mode.Context):
-        action.wait_tap_image(templates.SINGLE_MODE_CLASS_DETAIL_BUTTON)
+        action.wait_tap_image(
+            {
+                ctx.SCENARIO_AOHARU: templates.SINGLE_MODE_AOHARU_CLASS_DETAIL_BUTTON,
+            }.get(
+                ctx.scenario,
+                templates.SINGLE_MODE_CLASS_DETAIL_BUTTON,
+            )
+        )
         time.sleep(0.2)  # wait animation
         action.wait_image(templates.SINGLE_MODE_CLASS_DETAIL_TITLE)
         ctx.update_by_class_detail(template.screenshot())
@@ -79,7 +88,11 @@ class CommandScene(Scene):
 
     def recognize(self, ctx: single_mode.Context):
         action.reset_client_size()
-        ctx.update_by_command_scene(template.screenshot(max_age=0))
+        # animation may not finished
+        # https://github.com/NateScarlet/auto-derby/issues/201
+        action.run_with_retry(
+            lambda: ctx.update_by_command_scene(template.screenshot())
+        )
         self.recognize_commands(ctx)
         if not ctx.fan_count:
             self.recognize_class(ctx)
