@@ -1,10 +1,8 @@
 # -*- coding=UTF-8 -*-
 # pyright: strict
 
-from auto_derby import imagetools
+from .. import action, config, imagetools, template, templates
 from models.controller import missionController
-
-from .. import action, config, template, templates
 
 
 def team_race():
@@ -35,9 +33,9 @@ def team_race():
             )
 
             has_granted_reward = (
-                imagetools.compare_color((209, 43, 36), granted_reward_pos_color) > 0.99
-                or imagetools.compare_color((255, 255, 255), granted_reward_pos_color)
-                > 0.99
+                    imagetools.compare_color((209, 43, 36), granted_reward_pos_color) > 0.99
+                    or imagetools.compare_color((255, 255, 255), granted_reward_pos_color)
+                    > 0.99
             )
             if has_granted_reward:
                 action.tap(granted_reward_pos)
