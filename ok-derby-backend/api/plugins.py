@@ -36,11 +36,12 @@ PLUGIN_DESCRIPTION = {
 # noinspection PyAbstractClass
 class PluginHandler(api.base.ApiHandler):
     async def get(self):
+        print(os.listdir(PLUGINS_PATH))
         plugins = [
             {
-                "name": i.strip(".py"),
+                "name": i[:-3],
                 "checked": False,
-                "description": PLUGIN_DESCRIPTION.get(i.strip(".py"), "这个插件还没有描述哟")
+                "description": PLUGIN_DESCRIPTION.get(i[:-3], "这个插件还没有描述哟")
             }
             for i in os.listdir(PLUGINS_PATH)
             if i != "__pycache__"
