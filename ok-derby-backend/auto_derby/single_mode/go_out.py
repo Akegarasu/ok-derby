@@ -79,10 +79,8 @@ class Option:
         return 0
 
     def mood_rate(self, ctx: Context) -> float:
-        if ctx.mood == ctx.MOOD_VERY_GOOD:
-            return 0
         if self.type == self.TYPE_MAIN:
-            return 1
+            return 1.2
         if self.type == self.TYPE_SUPPORT:
             return 0.5
         return 0
@@ -97,12 +95,12 @@ class Option:
         ret = 0
 
         mood = mathtools.interpolate(
-            ctx.turn_count(),
+            ctx.speed,
             (
-                (0, 25),
-                (24, 20),
-                (48, 15),
-                (72, 10),
+                (0, 30),
+                (600, 25),
+                (900, 20),
+                (1200, 15),
             ),
         )
         max_mood_rate = {

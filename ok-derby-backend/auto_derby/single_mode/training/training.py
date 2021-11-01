@@ -130,7 +130,12 @@ def _ocr_training_effect(img: Image) -> int:
 
 
 def _ocr_red_training_effect(img: Image) -> int:
-    cv_img = imagetools.cv_image(imagetools.resize(img, height=48))
+    cv_img = imagetools.cv_image(
+        imagetools.resize(
+            imagetools.resize(img, height=24),
+            height=48,
+        )
+    )
     sharpened_img = cv2.filter2D(
         cv_img,
         8,
@@ -149,14 +154,24 @@ def _ocr_red_training_effect(img: Image) -> int:
         (255, 255, 255),
         (222, 220, 237),
         (252, 254, 202),
+        (236, 249, 105),
+        (243, 220, 160),
     )
 
     masked_img = imagetools.inside_outline(cv_img, white_outline_img)
 
     red_outline_img = imagetools.constant_color_key(
-        masked_img,
+        cv_img,
         (15, 18, 216),
         (34, 42, 234),
+        (56, 72, 218),
+        (20, 18, 181),
+        (27, 35, 202),
+    )
+    red_outline_img = cv2.morphologyEx(
+        red_outline_img,
+        cv2.MORPH_CLOSE,
+        np.ones((3, 3)),
     )
 
     masked_img = imagetools.inside_outline(masked_img, red_outline_img)
@@ -166,23 +181,31 @@ def _ocr_red_training_effect(img: Image) -> int:
         (
             ((129, 211, 255), 0),
             ((126, 188, 255), round(height * 0.5)),
-            ((57, 112, 255), height),
+            ((82, 134, 255), round(height * 0.75)),
+            ((36, 62, 211), height),
         )
     ).astype(np.uint8)
     fill_img = np.repeat(np.expand_dims(fill_gradient, 1), cv_img.shape[1], axis=1)
     assert fill_img.shape == cv_img.shape
 
-    text_img = imagetools.color_key(masked_img, fill_img)
-    imagetools.fill_area(text_img, (0,), size_lt=8)
+    text_img_base = imagetools.color_key(masked_img, fill_img)
+    imagetools.fill_area(text_img_base, (0,), size_lt=8)
 
     text_img_extra = imagetools.constant_color_key(
         masked_img,
         (128, 196, 253),
         (136, 200, 255),
         (144, 214, 255),
+        (58, 116, 255),
+        (64, 111, 238),
+        (114, 174, 251),
+        (89, 140, 240),
+        (92, 145, 244),
+        (91, 143, 238),
+        (140, 228, 254),
         threshold=0.95,
     )
-    text_img = np.array(np.maximum(text_img, text_img_extra))
+    text_img = np.array(np.maximum(text_img_base, text_img_extra))
     h = cv_img.shape[0]
     imagetools.fill_area(text_img, (0,), size_lt=round(h * 0.2 ** 2))
 
@@ -192,6 +215,8 @@ def _ocr_red_training_effect(img: Image) -> int:
         cv2.imshow("white_outline_img", white_outline_img)
         cv2.imshow("red_outline_img", red_outline_img)
         cv2.imshow("masked_img", masked_img)
+        cv2.imshow("fill", fill_img)
+        cv2.imshow("text_img_base", text_img_base)
         cv2.imshow("text_img_extra", text_img_extra)
         cv2.imshow("text_img", text_img)
         cv2.waitKey()
@@ -237,7 +262,7 @@ def _recognize_failure_rate(
         x + rp.vector(70, 540),
         y + rp.vector(-120, 540),
     )
-    rate_img = imagetools.cv_image(img.crop(bbox))
+    rate_img = imagetools.cv_image(imagetools.resize(img.crop(bbox), height=48))
     outline_img = imagetools.constant_color_key(
         rate_img,
         (252, 150, 14),
