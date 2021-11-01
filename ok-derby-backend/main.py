@@ -86,7 +86,7 @@ def run_server(host, port, debug):
     finally:
         url = "http://localhost/" if port == 80 else f"http://localhost:{port}/"
         # 防止更新版本后浏览器加载缓存
-        url += "?_v=" + '0.3'
+        url += "?_v=" + '0.5'
         webbrowser.open(url)
     logger.info("Server started: %s:%d", host, port)
     tornado.ioloop.IOLoop.current().start()
