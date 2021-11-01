@@ -320,7 +320,7 @@ export default {
       version: {
         OK_DERBY_FRONTEND: "0.4",
         OK_DERBY_BACKEND: "0.5",
-        AUTO_DERBY: "1.3",
+        AUTO_DERBY: "1.9.1",
       },
       model: {
         ADB_ADDRESS: "", // ADB Address
