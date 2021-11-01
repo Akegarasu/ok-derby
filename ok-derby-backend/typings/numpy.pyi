@@ -12739,7 +12739,14 @@ def alltrue(*args, **kwargs):
     """
     ...
 
-def amax(a, axis=None, out=None, keepdims=None, initial=None, where=None):
+def amax(
+    a: ArrayLike,
+    axis: Optional[Union[int, Tuple[int, ...]]] = None,
+    out: Optional[ndarray] = None,
+    keepdims: Optional[bool] = None,
+    initial: Optional[Scalar] = None,
+    where: Optional[ArrayLike] = None,
+) -> Union[ndarray, Scalar]:
     """
     Return the maximum of an array or maximum along an axis.
 
@@ -26016,7 +26023,13 @@ def obj2sctype(rep, default=None):
     """
     ...
 
-def ones(shape, dtype=None, order="C", *, like=None):
+def ones(
+    shape: Union[int, Sequence[int]],
+    dtype: type = None,
+    order: Text = "C",
+    *,
+    like: ArrayLike = None,
+) -> ndarray:
     """
     Return a new array of given shape and type, filled with ones.
 

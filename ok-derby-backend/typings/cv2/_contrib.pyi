@@ -3,7 +3,7 @@
 
 """
 
-from typing import Any, Text
+from typing import Any, Text, Tuple
 
 from numpy import ArrayLike, Scalar, ndarray
 
@@ -28562,36 +28562,6 @@ def findHomography(
     """
     ...
 
-def findNonZero(src, idx=...) -> idx:
-    """
-    .   @brief Returns the list of locations of non-zero pixels
-    .
-    .   Given a binary matrix (likely returned from an operation such
-    .   as threshold(), compare(), >, ==, etc, return all of
-    .   the non-zero indices as a cv::Mat or std::vector<cv::Point> (x,y)
-    .   For example:
-    .   @code{.cpp}
-    .       cv::Mat binaryImage; // input, binary image
-    .       cv::Mat locations;   // output, locations of non-zero pixels
-    .       cv::findNonZero(binaryImage, locations);
-    .
-    .       // access pixel coordinates
-    .       Point pnt = locations.at<Point>(i);
-    .   @endcode
-    .   or
-    .   @code{.cpp}
-    .       cv::Mat binaryImage; // input, binary image
-    .       vector<Point> locations;   // output, locations of non-zero pixels
-    .       cv::findNonZero(binaryImage, locations);
-    .
-    .       // access pixel coordinates
-    .       Point pnt = locations[i];
-    .   @endcode
-    .   @param src single-channel array
-    .   @param idx the output array, type of cv::Mat or std::vector<Point>, corresponding to non-zero indices in the input
-    """
-    ...
-
 def findTransformECC(
     templateImage,
     inputImage,
@@ -30414,15 +30384,15 @@ def moments(array, binaryImage=...) -> retval:
     ...
 
 def morphologyEx(
-    src,
-    op,
-    kernel,
-    dst=...,
-    anchor=...,
-    iterations=...,
-    borderType=...,
-    borderValue=...,
-) -> dst:
+    src: ndarray,
+    op: int,
+    kernel: ndarray,
+    dst: ndarray = ...,
+    anchor: Tuple[int, int] = ...,
+    iterations: int = ...,
+    borderType: int = ...,
+    borderValue: Any = ...,
+) -> ndarray:
     """
     .   @brief Performs advanced morphological transformations.
     .
