@@ -9,6 +9,7 @@ from abc import ABC, abstractmethod
 from importlib.machinery import SourceFileLoader
 from pathlib import Path
 from typing import Dict
+
 import cast_unknown as cast
 
 LOGGER = logging.getLogger(__name__)

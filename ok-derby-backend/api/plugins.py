@@ -24,18 +24,24 @@ PLUGIN_DESCRIPTION = {
     "no_event_prompt": "未见过的事件不请求人工处理自动选择第一项",
     "no_ocr_prompt": "文本识别匹配度较低时不请求人工处理而是自动使用匹配度最高的字",
     "afk": "无人值守模式 比赛前不暂停 + auto_crane + no_event_prompt + no_ocr_prompt",
-    "use_legacy_screenshot": "使用旧版截图，性能较低。截屏出错时可尝试使用。"
+    "use_legacy_screenshot": "使用旧版截图，性能较低。截屏出错时可尝试使用。",
+    "less_op": "更少参加 OP/Pre-OP 的比赛，重复多次会增强效果。",
+    "pause_before_command": "在执行每个命令之前暂停，可用于调试评分。",
+    "pause_before_race_continue": "在比赛失败消耗闹钟继续比赛前暂停",
+    "SSR樫本理子": "将友人卡假设为 樫本理子 进行更精准的评分",
+    "SSR駿川たづな": "将友人卡假设为 駿川たづな 进行更精准的评分"
 }
 
 
 # noinspection PyAbstractClass
 class PluginHandler(api.base.ApiHandler):
     async def get(self):
+        print(os.listdir(PLUGINS_PATH))
         plugins = [
             {
-                "name": i.strip(".py"),
+                "name": i[:-3],
                 "checked": False,
-                "description": PLUGIN_DESCRIPTION.get(i.strip(".py"), "这个插件还没有描述哟")
+                "description": PLUGIN_DESCRIPTION.get(i[:-3], "这个插件还没有描述哟")
             }
             for i in os.listdir(PLUGINS_PATH)
             if i != "__pycache__"

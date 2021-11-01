@@ -5,13 +5,18 @@
 import hashlib
 import threading
 from pathlib import Path
-from typing import Any, Callable, Dict, Literal, Optional, Text, Tuple, Union
+from typing import Any, Callable, Literal, Optional, Text, Tuple, Union
 
 import cast_unknown as cast
 import cv2
 import cv2.img_hash
 import numpy as np
 from PIL.Image import BICUBIC, Image, fromarray
+
+
+class _g:
+    window_id = 0
+
 
 _Resample = Literal[0, 1, 2, 3, 4, 5]
 
@@ -147,6 +152,30 @@ def constant_color_key(
     return ret
 
 
+def compare_color_near(
+    img: np.ndarray,
+    pos: Tuple[int, int],
+    color: Tuple[int, ...],
+    radius: int = 2,
+) -> float:
+    x, y = pos
+    bbox = (
+        x - radius,
+        y - radius,
+        x + radius,
+        y + radius,
+    )
+    mask = constant_color_key(
+        img[
+            bbox[1] : bbox[3],
+            bbox[0] : bbox[2],
+        ],
+        color,
+    )
+    mask_max = np.uint8(np.amax(mask))
+    return int(mask_max) / 255
+
+
 def sharpen(img: np.ndarray, size: int = 1, *, bit_size: int = 8) -> np.ndarray:
     return cv2.filter2D(
         img, bit_size, np.array(((-1, -1, -1), (-1, 9, -1), (-1, -1, -1))) * size
@@ -189,6 +218,13 @@ def bg_mask_by_outline(outline_img: np.ndarray) -> np.ndarray:
     return border_flood_fill(outline_img)
 
 
+def inside_outline(img: np.ndarray, outline_img: np.ndarray) -> np.ndarray:
+    _, outline_img = cv2.threshold(outline_img, 0, 255, cv2.THRESH_BINARY)
+    bg_mask = border_flood_fill(outline_img) + outline_img
+    fg_mask = 255 - bg_mask
+    return cv2.copyTo(img, fg_mask)
+
+
 def resize(
     img: Image,
     *,
@@ -224,15 +260,12 @@ def fill_area(
             cv2.drawContours(img, [i], -1, color, cv2.FILLED)
 
 
-_WINDOW_ID: Dict[Literal["value"], int] = {"value": 0}
-
-
 def show(img: Image, title: Text = "") -> Callable[[], None]:
 
     stop_event = threading.Event()
     stop_event.is_set()
-    _WINDOW_ID["value"] += 1
-    title = f"{title} - {_WINDOW_ID['value']}"
+    _g.window_id += 1
+    title = f"{title} - {_g.window_id}"
 
     def _run():
         cv_img = cv_image(img)
