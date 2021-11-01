@@ -4,7 +4,7 @@
 from . import mathtools
 from . import template
 import time
-from typing import Callable, Iterable, Iterator, Text, Tuple, Union
+from typing import Callable, Iterable, Iterator, Text, Tuple, TypeVar, Union
 
 from . import clients
 from models.controller import missionController
@@ -52,8 +52,6 @@ def wait_image(
             return next(template.match(template.screenshot(max_age=0), *tmpl))
         except StopIteration:
             time.sleep(0.01)
-    return (template.Specification(""), (0, 0))
-
 
 
 def wait_image_stable(
@@ -71,6 +69,19 @@ def wait_image_stable(
             break
         last_pos = pos
     return t, last_pos
+
+
+T = TypeVar("T")
+
+
+def run_with_retry(fn: Callable[[], T], max_retry: int = 10, delay: float = 1) -> T:
+    try:
+        return fn()
+    except Exception:
+        if max_retry <= 0:
+            raise
+        time.sleep(delay)
+        return run_with_retry(fn, max_retry - 1, delay)
 
 
 def wait_image_disappear(*tmpl: Union[Text, template.Specification]) -> None:
