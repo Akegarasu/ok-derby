@@ -44,7 +44,7 @@
               <base-progress
                 type="info"
                 :height="8"
-                :value="40"
+                :value="50"
                 label="开发进度"
               ></base-progress>
             </div>

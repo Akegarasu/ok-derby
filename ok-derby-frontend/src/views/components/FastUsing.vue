@@ -16,19 +16,19 @@
       </div>
       <div class="card-body">
         <base-button
-          type="default"
+          type="primary"
           @click="startJob('nurturing')"
           style="margin-bottom: 10px"
           >育成</base-button
         >
         <base-button
-          type="primary"
+          type="default"
           @click="startJob('nurturing', true)"
           style="margin-bottom: 10px"
           v-tooltip.top-center="
             '该选项只会加载afk插件，如果需要其他插件请使用育成手动选择插件'
           "
-          >无人值守育成（全自动）</base-button
+          >仅AFK育成</base-button
         >
         <base-button
           type="default"
