@@ -14,7 +14,7 @@
 importScripts("https://storage.googleapis.com/workbox-cdn/releases/4.3.1/workbox-sw.js");
 
 importScripts(
-  "/precache-manifest.06c7c1e78b4f158615e6761a914efb16.js"
+  "/precache-manifest.a50ba2701dee5493335d2fcba5752d20.js"
 );
 
 workbox.core.setCacheNameDetails({prefix: "ok-derby-frontend"});
