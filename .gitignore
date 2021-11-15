@@ -15,7 +15,6 @@ __pycache__/
 .Python
 build/
 develop-eggs/
-dist/
 downloads/
 eggs/
 .eggs/
@@ -132,5 +131,6 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+ok-derby-backend/dist/
 ok-derby-backend/adb.local.key
 ok-derby-backend/adb.local.key.pub
