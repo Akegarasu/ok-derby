@@ -2,6 +2,7 @@
 # pyright: strict
 
 
+import contextlib
 import csv
 import json
 import logging
@@ -29,6 +30,16 @@ class g:
 
 def _data_key():
     return (len(g.labels), g.data_path)
+
+
+@contextlib.contextmanager
+def prompt_disabled(v: bool):
+    original = g.prompt_disabled
+    g.prompt_disabled = v
+    try:
+        yield
+    finally:
+        g.prompt_disabled = original
 
 
 class _g:

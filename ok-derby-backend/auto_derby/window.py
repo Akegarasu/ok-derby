@@ -26,6 +26,7 @@ class _g:
 
 class g:
     use_legacy_screenshot = False
+    on_foreground_will_change = lambda: None
 
 
 def message_box(
@@ -106,19 +107,34 @@ def topmost(h_wnd: int):
     )
 
 
+def set_foreground(h_wnd: int) -> None:
+    g.on_foreground_will_change()
+    LOGGER.debug("set foreground window: h_wnd=%s", h_wnd)
+    try:
+        win32gui.SetForegroundWindow(h_wnd)
+    except Exception as ex:
+        LOGGER.warn(
+            "set foreground window failed: h_wnd=%s error='%s'",
+            h_wnd,
+            ex,
+        )
+
+
 def set_forground(h_wnd: int) -> None:
-    win32gui.SetForegroundWindow(h_wnd)
+    import warnings
+
+    warnings.warn("use set_foreground instead", DeprecationWarning)
+    return set_foreground(h_wnd)
 
 
 @contextlib.contextmanager
 def recover_foreground():
-    fg_h_wnd = win32gui.GetForegroundWindow()
+    h_wnd = win32gui.GetForegroundWindow()
+    LOGGER.debug("foreground window: h_wnd=%s", h_wnd)
+    g.on_foreground_will_change()
     yield
     time.sleep(0.1)  # switch too fast may cause issue
-    try:
-        win32gui.SetForegroundWindow(fg_h_wnd)
-    except Exception as ex:
-        LOGGER.warn("recover foreground window failed: %s", ex)
+    set_foreground(h_wnd)
 
 
 def info(msg: Text) -> Callable[[], None]:
@@ -134,7 +150,7 @@ def recover_cursor():
 
 def click_at(h_wnd: int, point: Tuple[int, int]):
     point = win32gui.ClientToScreen(h_wnd, point)
-    with topmost(h_wnd), recover_foreground(), recover_cursor():
+    with recover_foreground(), recover_cursor(), topmost(h_wnd):
         mouse.move(point[0], point[1])
         mouse.click()
         time.sleep(0.2)
@@ -144,7 +160,7 @@ def drag_at(
     h_wnd: int, point: Tuple[int, int], *, dx: int, dy: int, duration: float = 1
 ):
     x, y = win32gui.ClientToScreen(h_wnd, point)
-    with topmost(h_wnd), recover_foreground(), recover_cursor():
+    with recover_foreground(), recover_cursor(), topmost(h_wnd):
         mouse.drag(x, y, x + dx, y + dy, duration=duration)
         move_at(h_wnd, (-1, -1))
         time.sleep(0.05)
@@ -152,7 +168,7 @@ def drag_at(
 
 def wheel_at(h_wnd: int, delta: int) -> None:
     with recover_foreground():
-        set_forground(h_wnd)
+        set_foreground(h_wnd)
         for _ in range(abs(delta)):
             mouse.wheel(1 if delta > 0 else -1)
             time.sleep(1 / 120.0)

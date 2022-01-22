@@ -9,12 +9,12 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from datetime import datetime
 
-VERSION = "1.9.1"
-RELEASE_DATE = datetime.fromtimestamp(1634371352)
-LAST_GIT_COMMIT_DESCRIBE = "v1.9.0-2-g11a5df5"
-LAST_GIT_COMMIT_HASH = "11a5df5912bac812701b9a4e2b111ae8707a3021"
+VERSION = "1.13.7"
+RELEASE_DATE = datetime.fromtimestamp(1641570535)
+LAST_GIT_COMMIT_DESCRIBE = "v1.13.6-1-gd9d9a7e"
+LAST_GIT_COMMIT_HASH = "d9d9a7e5a51deaedbe88188ec152ee52038a5048"
 LAST_GIT_COMMIT_AUTHOR_NAME = "NateScarlet"
 LAST_GIT_COMMIT_AUTHOR_EMAIL = "NateScarlet@Gmail.com"
-LAST_GIT_COMMIT_AUTHOR_DATE = datetime.fromtimestamp(1634371075)
-LAST_GIT_COMMIT_SUBJECT = "fix(single-mode): error when recognize aoharu training scene"
-LAST_GIT_COMMIT_BODY = "fix #205"
+LAST_GIT_COMMIT_AUTHOR_DATE = datetime.fromtimestamp(1641570432)
+LAST_GIT_COMMIT_SUBJECT = "fix(plugin): race_campaign: update data"
+LAST_GIT_COMMIT_BODY = ""

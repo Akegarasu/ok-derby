@@ -43,6 +43,13 @@ def _default_on_single_mode_end(ctx: single_mode.Context) -> None:
     pass
 
 
+def _getenv_int(key: Text, d: int) -> int:
+    try:
+        return int(os.getenv(key, ""))
+    except:
+        return d
+
+
 class config:
     LOG_PATH = os.getenv("AUTO_DERBY_LOG_PATH", "auto_derby.log")
     PLUGINS = tuple(i for i in os.getenv("AUTO_DERBY_PLUGINS", "").split(",") if i)
@@ -52,6 +59,14 @@ class config:
     single_mode_race_data_path = os.getenv(
         "AUTO_DERBY_SINGLE_MODE_RACE_DATA_PATH",
         data.path("single_mode_races.jsonl"),
+    )
+    single_mode_race_result_path = os.getenv(
+        "AUTO_DERBY_SINGLE_MODE_RACE_RESULT_PATH",
+        "data/single_mode_race_results.jsonl",
+    )
+    single_mode_race_result_max_bytes = _getenv_int(
+        "AUTO_DERBY_SINGLE_MODE_RACE_RESULT_MAX_BYTES",
+        single_mode.race.g.result_max_bytes,
     )
     ocr_data_path = os.getenv("AUTO_DERBY_OCR_LABEL_PATH", "data/ocr_labels.csv")
     ocr_image_path = os.getenv("AUTO_DERBY_OCR_IMAGE_PATH", "")
@@ -90,6 +105,7 @@ class config:
         os.getenv("AUTO_DERBY_OCR_PROMPT_DISABLED", "").lower() == "true"
     )
     adb_key_path = os.getenv("AUTO_DERBY_ADB_KEY_PATH", ADBClient.key_path)
+    adb_action_wait = _getenv_int("AUTO_DERBY_ADB_ACTION_WAIT", ADBClient.action_wait)
 
     on_limited_sale = lambda: terminal.pause(
         "Please handle limited shop manually before confirm in terminal.\n"
@@ -114,6 +130,7 @@ class config:
     @classmethod
     def apply(cls) -> None:
         ADBClient.key_path = cls.adb_key_path
+        ADBClient.action_wait = cls.adb_action_wait
         ocr.g.data_path = cls.ocr_data_path
         ocr.g.image_path = cls.ocr_image_path
         ocr.g.prompt_disabled = cls.ocr_prompt_disabled
@@ -125,6 +142,8 @@ class config:
         single_mode.go_out.g.option_class = cls.single_mode_go_out_option_class
         single_mode.go_out.g.names = cls.single_mode_go_out_names
         single_mode.race.g.data_path = cls.single_mode_race_data_path
+        single_mode.race.g.result_path = cls.single_mode_race_result_path
+        single_mode.race.g.result_max_bytes = cls.single_mode_race_result_max_bytes
         single_mode.race.g.race_class = cls.single_mode_race_class
         single_mode.training.g.image_path = cls.single_mode_training_image_path
         single_mode.training.g.target_levels = cls.single_mode_target_training_levels
