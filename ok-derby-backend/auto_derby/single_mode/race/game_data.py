@@ -12,13 +12,12 @@ import logging
 import os
 import warnings
 
-import cast_unknown as cast
 import cv2
 import numpy as np
 import PIL.Image
 import PIL.ImageOps
 
-from ... import imagetools, mathtools, ocr, template, templates
+from ... import imagetools, mathtools, ocr, template, templates, texttools
 from .globals import g
 from .race import Race
 
@@ -103,6 +102,18 @@ def _recognize_fan_count(img: PIL.Image.Image) -> int:
     return int(text.rstrip("人").replace(",", ""))
 
 
+_TURN_TRACK_SPEC = {
+    "左·内": (Race.TURN_LEFT, Race.TRACK_IN),
+    "右·内": (Race.TURN_RIGHT, Race.TRACK_IN),
+    "左": (Race.TURN_LEFT, Race.TRACK_MIDDLE),
+    "右": (Race.TURN_RIGHT, Race.TRACK_MIDDLE),
+    "左·外": (Race.TURN_LEFT, Race.TRACK_OUT),
+    "右·外": (Race.TURN_RIGHT, Race.TRACK_OUT),
+    "直線": (Race.TURN_NONE, Race.TRACK_MIDDLE),
+    "右·外→内": (Race.TURN_RIGHT, Race.TRACK_OUT_TO_IN),
+}
+
+
 def _recognize_spec(img: PIL.Image.Image) -> Tuple[Text, int, int, int, int]:
     cv_img = imagetools.cv_image(imagetools.resize(img.convert("L"), height=32))
     cv_img = imagetools.level(
@@ -127,34 +138,30 @@ def _recognize_spec(img: PIL.Image.Image) -> Tuple[Text, int, int, int, int]:
 
     distance, text = int(text[:4]), text[10:]
 
-    turn, track = {
-        "左·内": (Race.TURN_LEFT, Race.TRACK_IN),
-        "右·内": (Race.TURN_RIGHT, Race.TRACK_IN),
-        "左": (Race.TURN_LEFT, Race.TRACK_MIDDLE),
-        "右": (Race.TURN_RIGHT, Race.TRACK_MIDDLE),
-        "左·外": (Race.TURN_LEFT, Race.TRACK_OUT),
-        "右·外": (Race.TURN_RIGHT, Race.TRACK_OUT),
-        "直線": (Race.TURN_NONE, Race.TRACK_MIDDLE),
-    }[text]
+    turn, track = _TURN_TRACK_SPEC[texttools.choose(text, _TURN_TRACK_SPEC.keys())]
 
     return stadium, ground, distance, turn, track
 
 
-def _recognize_grade(rgb_color: Tuple[int, ...]) -> Tuple[int, ...]:
-    if imagetools.compare_color((247, 209, 41), rgb_color) > 0.9:
+def _recognize_grade(
+    img: PIL.Image.Image, pos: Tuple[int, int], radius: int = 2
+) -> Tuple[int, ...]:
+    cv_img = imagetools.cv_image(img)
+    # TODO: get dominance color, then find most similar match instead
+    if imagetools.compare_color_near(cv_img, pos, (0, 140, 215), radius=radius) > 0.9:
         # EX(URA)
         return (Race.GRADE_G1,)
-    if imagetools.compare_color((54, 133, 228), rgb_color) > 0.8:
+    if imagetools.compare_color_near(cv_img, pos, (228, 133, 54), radius=radius) > 0.8:
         return (Race.GRADE_G1,)
-    if imagetools.compare_color((244, 85, 129), rgb_color) > 0.8:
+    if imagetools.compare_color_near(cv_img, pos, (129, 85, 244), radius=radius) > 0.8:
         return (Race.GRADE_G2,)
-    if imagetools.compare_color((57, 187, 85), rgb_color) > 0.8:
+    if imagetools.compare_color_near(cv_img, pos, (85, 187, 57), radius=radius) > 0.8:
         return (Race.GRADE_G3,)
-    if imagetools.compare_color((252, 169, 5), rgb_color) > 0.8:
+    if imagetools.compare_color_near(cv_img, pos, (5, 169, 252), radius=radius) > 0.8:
         return Race.GRADE_OP, Race.GRADE_PRE_OP
-    if imagetools.compare_color((148, 203, 8), rgb_color) > 0.8:
+    if imagetools.compare_color_near(cv_img, pos, (8, 203, 148), radius=radius) > 0.8:
         return Race.GRADE_DEBUT, Race.GRADE_NOT_WINNING
-    raise ValueError("_recognize_grade: unknown grade color: %s" % (rgb_color,))
+    raise ValueError("_recognize_grade: unknown grade color: %s" % (img.getpixel(pos),))
 
 
 def _find_by_spec(
@@ -185,7 +192,7 @@ def _find_by_spec(
 def find_by_race_detail_image(ctx: Context, screenshot: PIL.Image.Image) -> Race:
     rp = mathtools.ResizeProxy(screenshot.width)
 
-    grade_color_pos = rp.vector2((10, 75), 466)
+    grade_color_pos = rp.vector2((45, 92), 466)
     spec_bbox = rp.vector4((27, 260, 302, 279), 466)
     _, no1_fan_count_pos = next(
         template.match(screenshot, templates.SINGLE_MODE_RACE_DETAIL_NO1_FAN_COUNT)
@@ -198,7 +205,8 @@ def find_by_race_detail_image(ctx: Context, screenshot: PIL.Image.Image) -> Race
     )
 
     grades = _recognize_grade(
-        tuple(cast.list_(screenshot.getpixel(grade_color_pos), int))
+        screenshot,
+        grade_color_pos,
     )
     stadium, ground, distance, turn, track = _recognize_spec(screenshot.crop(spec_bbox))
     no1_fan_count = _recognize_fan_count(screenshot.crop(no1_fan_count_bbox))
@@ -222,13 +230,13 @@ def find_by_race_detail_image(ctx: Context, screenshot: PIL.Image.Image) -> Race
 
 def _find_by_race_menu_item(ctx: Context, img: PIL.Image.Image) -> Iterator[Race]:
     rp = mathtools.ResizeProxy(img.width)
-    spec_bbox = rp.vector4((221, 12, 478, 32), 492)
+    spec_bbox = rp.vector4((221, 12, 488, 30), 492)
     no1_fan_count_bbox = rp.vector4((207, 54, 360, 72), 492)
-    grade_color_pos = rp.vector2((182, 14), 492)
+    grade_color_pos = rp.vector2((198, 29), 540)
 
     stadium, ground, distance, turn, track = _recognize_spec(img.crop(spec_bbox))
     no1_fan_count = _recognize_fan_count(img.crop(no1_fan_count_bbox))
-    grades = _recognize_grade(tuple(cast.list_(img.getpixel(grade_color_pos), int)))
+    grades = _recognize_grade(img, grade_color_pos)
     full_spec = (
         ctx.date,
         stadium,
