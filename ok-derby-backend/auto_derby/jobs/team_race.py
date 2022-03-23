@@ -14,6 +14,8 @@ def team_race():
             templates.GREEN_NEXT_BUTTON,
             templates.TEAM_RACE_CHOOSE_COMPETITOR,
             templates.RACE_START_BUTTON,
+            templates.TEAM_RACE_ALL_RACE_RESULT_BUTTON,
+            templates.TEAM_RACE_WHITE_SHORT_VERSION_BUTTON,
             templates.TEAM_RACE_RESULT_BUTTON,
             templates.RACE_AGAIN_BUTTON,
             templates.TEAM_RACE_WIN,
@@ -22,6 +24,7 @@ def team_race():
             templates.TEAM_RACE_HIGH_SCORE_UPDATED,
             templates.TEAM_RACE_NEXT_BUTTON,
             templates.LIMITED_SALE_OPEN,
+            templates.SKIP_BUTTON,
             templates.RP_NOT_ENOUGH,
         )
         name = tmpl.name
@@ -33,9 +36,9 @@ def team_race():
             )
 
             has_granted_reward = (
-                    imagetools.compare_color((209, 43, 36), granted_reward_pos_color) > 0.99
-                    or imagetools.compare_color((255, 255, 255), granted_reward_pos_color)
-                    > 0.99
+                imagetools.compare_color((209, 43, 36), granted_reward_pos_color) > 0.99
+                or imagetools.compare_color((255, 255, 255), granted_reward_pos_color)
+                > 0.99
             )
             if has_granted_reward:
                 action.tap(granted_reward_pos)

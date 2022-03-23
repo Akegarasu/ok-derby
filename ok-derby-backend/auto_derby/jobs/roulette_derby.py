@@ -1,8 +1,9 @@
 # -*- coding=UTF-8 -*-
 # pyright: strict
 
-import time
+
 from .. import action, templates
+import time
 from models.controller import missionController
 
 
