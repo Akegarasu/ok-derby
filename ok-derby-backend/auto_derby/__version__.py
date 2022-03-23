@@ -9,12 +9,12 @@ from __future__ import absolute_import, division, print_function, unicode_litera
 
 from datetime import datetime
 
-VERSION = "1.13.7"
-RELEASE_DATE = datetime.fromtimestamp(1641570535)
-LAST_GIT_COMMIT_DESCRIBE = "v1.13.6-1-gd9d9a7e"
-LAST_GIT_COMMIT_HASH = "d9d9a7e5a51deaedbe88188ec152ee52038a5048"
+VERSION = "1.17.4"
+RELEASE_DATE = datetime.fromtimestamp(1648036091)
+LAST_GIT_COMMIT_DESCRIBE = "v1.17.3-2-g459a223"
+LAST_GIT_COMMIT_HASH = "459a2231db8a02263cb5c942da8a14a74fb68b59"
 LAST_GIT_COMMIT_AUTHOR_NAME = "NateScarlet"
 LAST_GIT_COMMIT_AUTHOR_EMAIL = "NateScarlet@Gmail.com"
-LAST_GIT_COMMIT_AUTHOR_DATE = datetime.fromtimestamp(1641570432)
-LAST_GIT_COMMIT_SUBJECT = "fix(plugin): race_campaign: update data"
+LAST_GIT_COMMIT_AUTHOR_DATE = datetime.fromtimestamp(1648036078)
+LAST_GIT_COMMIT_SUBJECT = "fix: invalid syntax in __version__.py"
 LAST_GIT_COMMIT_BODY = ""
