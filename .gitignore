@@ -131,6 +131,7 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+ok-derby-backend/frontend/dist/
 ok-derby-backend/dist/
 ok-derby-backend/adb.local.key
 ok-derby-backend/adb.local.key.pub
