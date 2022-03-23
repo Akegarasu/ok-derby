@@ -44,7 +44,7 @@
               <base-progress
                 type="info"
                 :height="8"
-                :value="50"
+                :value="70"
                 label="开发进度"
               ></base-progress>
             </div>
@@ -76,7 +76,11 @@ export default {
   watch: {},
   computed: {
     backgroundImg() {
-      return require("../../public/img/mayano.jpeg");
+      const randomChoice = (arr) => {
+          return arr[Math.floor(arr.length * Math.random())];
+      }
+
+      return require("../../public/img/"+ randomChoice(["mayano", "kitasato", "background3"]) + ".jpg");
     },
   },
   methods: {},

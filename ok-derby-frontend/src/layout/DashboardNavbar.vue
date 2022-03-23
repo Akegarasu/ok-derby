@@ -20,7 +20,7 @@
                   <img alt="Image placeholder" src="img/theme/specialweek.png">
                 </span>
                         <div class="media-body ml-2 d-none d-lg-block">
-                            <span class="mb-0 text-sm  font-weight-bold">秋葉</span>
+                            <span class="mb-0 text-sm  font-weight-bold">特别肥</span>
                         </div>
                     </div>
 
