@@ -1,24 +1,24 @@
 from typing import Text
-
-import pytest
+from .go_out_menu import GoOutMenuScene
 
 from ... import _test
+import pytest
+
 from ...single_mode import Context
-from .command import CommandScene
 
 
 @pytest.mark.parametrize(
     "name",
     tuple(
-        i.stem for i in ((_test.DATA_PATH / "single_mode").glob("command_scene_*.png"))
+        i.stem for i in ((_test.DATA_PATH / "single_mode").glob("go_out_menu_*.png"))
     ),
 )
 def test_recognize(name: Text):
     _test.use_screenshot(f"single_mode/{name}.png")
-    scene = CommandScene()
     ctx = Context.new()
-    scene.recognize(ctx, static=True)
+    scene = GoOutMenuScene()
+    scene.recognize(ctx)
     _test.snapshot_match(
-        dict(ctx=ctx, scene=scene),
+        {"options": ctx.go_out_options},
         name=name,
     )
