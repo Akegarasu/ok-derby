@@ -237,13 +237,8 @@ def test_find_by_race_menu_image_5():
     ctx = Context.new()
     ctx.date = (4, 0, 0)
     img, _ = _test.use_screenshot("single_mode/race_menu_5.png")
-    (res1,) = race.find_by_race_menu_image(ctx, img)
-    race1, pos1 = res1
-
-    assert pos1 == (203, 586), pos1
-    assert race1.name == "URAファイナルズ予選", race1.name
-    assert race1.stadium == "中山", race1.stadium
-    assert race1.characters == set(), race1.characters
+    res = sorted(race.find_by_race_menu_image(ctx, img), key=lambda x: x[1][1])
+    _test.snapshot_match(res)
 
 
 def test_find_by_race_menu_image_6():
@@ -279,6 +274,33 @@ def test_find_by_race_menu_image_7():
     ctx = Context.new()
     ctx.date = (3, 4, 2)
     img, _ = _test.use_screenshot("single_mode/race_menu_7.png")
+    res = sorted(race.find_by_race_menu_image(ctx, img), key=lambda x: x[1][1])
+    _test.snapshot_match(res)
+
+
+def test_find_by_race_menu_image_8():
+    ctx = Context.new()
+    ctx.date = (1, 0, 0)
+    ctx.scenario = ctx.SCENARIO_CLIMAX
+    img, _ = _test.use_screenshot("single_mode/race_menu_8.png")
+    res = sorted(race.find_by_race_menu_image(ctx, img), key=lambda x: x[1][1])
+    _test.snapshot_match(res)
+
+
+def test_find_by_race_menu_image_9():
+    ctx = Context.new()
+    ctx.date = (1, 8, 2)
+    ctx.scenario = ctx.SCENARIO_CLIMAX
+    img, _ = _test.use_screenshot("single_mode/race_menu_9.png")
+    res = sorted(race.find_by_race_menu_image(ctx, img), key=lambda x: x[1][1])
+    _test.snapshot_match(res)
+
+
+def test_find_by_race_menu_image_10():
+    ctx = Context.new()
+    ctx.date = (3, 10, 2)
+    ctx.scenario = ctx.SCENARIO_CLIMAX
+    img, _ = _test.use_screenshot("single_mode/race_menu_10.png")
     res = sorted(race.find_by_race_menu_image(ctx, img), key=lambda x: x[1][1])
     _test.snapshot_match(res)
 

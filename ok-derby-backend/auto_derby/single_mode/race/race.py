@@ -1,13 +1,15 @@
 # pyright: strict
 # -*- coding=UTF-8 -*-
 from __future__ import annotations
-from auto_derby.constants import RuningStyle
 
+from copy import deepcopy
 from typing import TYPE_CHECKING, Any, Dict, Iterator, Optional, Set, Text, Tuple
 
-if TYPE_CHECKING:
-    from ..context import Context
+from auto_derby.constants import RuningStyle
 
+
+import hashlib
+import json
 import logging
 import math
 
@@ -15,7 +17,22 @@ from ... import mathtools
 from . import race_score, runing_style_score
 from .globals import g
 
+if TYPE_CHECKING:
+    from ..context import Context
+
 _LOGGER = logging.getLogger(__name__)
+
+
+class _g:
+    estimate_order_cache: Dict[Any, int] = {}
+    cache_size = 64
+
+
+def _estimate_order_cache_key(ctx: Context, race: Race):
+    h = hashlib.md5()
+    h.update(json.dumps(ctx.to_dict()).encode("utf-8"))
+    h.update(json.dumps(race.to_dict()).encode("utf-8"))
+    return h.digest()
 
 
 class Race:
@@ -73,6 +90,13 @@ class Race:
         self.target_statuses: Tuple[int, ...] = ()
         self.fan_counts: Tuple[int, ...] = ()
         self.characters: Set[Text] = set()
+        self.grade_points: Tuple[int, ...] = ()
+        self.shop_coins: Tuple[int, ...] = ()
+
+        self.raward_buff = 0.0
+
+    def clone(self):
+        return deepcopy(self)
 
     def to_dict(self) -> Dict[Text, Any]:
         return {
@@ -90,6 +114,8 @@ class Race:
             "targetStatuses": self.target_statuses,
             "minFanCount": self.min_fan_count,
             "fanCounts": self.fan_counts,
+            "gradePoints": self.grade_points,
+            "shopCoins": self.shop_coins,
             "characters": sorted(self.characters),
         }
 
@@ -110,6 +136,8 @@ class Race:
         self.target_statuses = tuple(data["targetStatuses"])
         self.min_fan_count = data["minFanCount"]
         self.fan_counts = tuple(data["fanCounts"])
+        self.shop_coins = tuple(data.get("shopCoins", []))
+        self.grade_points = tuple(data.get("gradePoints", []))
         self.characters = set(data.get("characters", []))
         return self
 
@@ -192,8 +220,8 @@ class Race:
         yield RuningStyle.HEAD, head
         yield RuningStyle.LAST, last
 
-    def estimate_order(self, ctx: Context) -> int:
-        style_scores = self.style_scores(ctx)
+    def _raw_estimate_order(self, ctx: Context) -> int:
+        style_scores = tuple(i for _, i in self.style_scores_v2(ctx))
         best_style_score = sorted(style_scores, reverse=True)[0]
         estimate_order = math.ceil(
             mathtools.interpolate(
@@ -217,6 +245,14 @@ class Race:
         )
         return estimate_order
 
+    def estimate_order(self, ctx: Context) -> int:
+        key = _estimate_order_cache_key(ctx, self)
+        if key not in _g.estimate_order_cache:
+            if len(_g.estimate_order_cache) >= _g.cache_size:
+                _g.estimate_order_cache.clear()
+            _g.estimate_order_cache[key] = self._raw_estimate_order(ctx)
+        return _g.estimate_order_cache[key]
+
     def score(self, ctx: Context) -> float:
         return race_score.compute(ctx, self)
 
@@ -227,6 +263,22 @@ class Race:
             return None
         if len(self.characters) < 10:
             return True
+
+    def is_avaliable(self, ctx: Context) -> Optional[bool]:
+        """return None when result is unknown."""
+
+        if ctx.date == (1, 0, 0) and self.grade != self.GRADE_DEBUT:
+            return False
+        if ctx.date[1:] not in ((self.month, self.half), (0, 0)):
+            return False
+        if ctx.date[0] not in self.years:
+            return False
+        if self.grade == Race.GRADE_NOT_WINNING:
+            return not ctx.is_after_winning or ctx.fan_count == 1
+        if self.grade < Race.GRADE_NOT_WINNING and not ctx.is_after_winning:
+            return False
+        if ctx.fan_count < self.min_fan_count:
+            return False
 
 
 g.race_class = Race
