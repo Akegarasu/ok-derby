@@ -14,7 +14,7 @@ LOGGER = logging.getLogger(__name__)
 def start(job_name: str,
           plugins: str,
           adb_address: Optional[str] = None) -> None:
-    if adb_address == None:
+    if adb_address is None:
         adb_address = config.ADB_ADDRESS
 
     avaliable_jobs = {
