@@ -28,15 +28,16 @@ PLUGIN_DESCRIPTION = {
     "less_op": "更少参加 OP/Pre-OP 的比赛，重复多次会增强效果。",
     "pause_before_command": "在执行每个命令之前暂停，可用于调试评分。",
     "pause_before_race_continue": "在比赛失败消耗闹钟继续比赛前暂停",
+    "pause_on_last_turn": "在 URA 决赛回合暂停，直接在这里关闭脚本可方便第二天直接完成日常任务。<br>从第三年结束后再开始育成时此插件无效，因为第四年是通过计数来确定回合的。",
     "SSR樫本理子": "将友人卡假设为 樫本理子 进行更精准的评分",
-    "SSR駿川たづな": "将友人卡假设为 駿川たづな 进行更精准的评分"
+    "SSR駿川たづな": "将友人卡假设为 駿川たづな 进行更精准的评分",
+    "race_campaign": "根据当前举办的活动调整赛程，达成活动要求后不会重复出战。**数据由人工更新**"
 }
 
 
 # noinspection PyAbstractClass
 class PluginHandler(api.base.ApiHandler):
     async def get(self):
-        print(os.listdir(PLUGINS_PATH))
         plugins = [
             {
                 "name": i[:-3],
