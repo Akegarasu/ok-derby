@@ -13,7 +13,7 @@ from PIL.Image import Image
 from auto_derby import mathtools
 
 
-from ... import data, imagetools, web, texttools
+from auto_derby import data, imagetools, web, texttools
 from . import game_data
 from .globals import g
 from .item import Item
