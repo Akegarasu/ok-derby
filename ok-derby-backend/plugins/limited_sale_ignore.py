@@ -15,3 +15,6 @@ class Plugin(auto_derby.Plugin):
 
 
 auto_derby.plugin.register(__name__, Plugin())
+
+# Deprecated: remove at next major version
+auto_derby.plugin.register("limited_sale_close", Plugin())

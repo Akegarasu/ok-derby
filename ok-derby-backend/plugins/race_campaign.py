@@ -143,69 +143,31 @@ class Plugin(auto_derby.Plugin):
 auto_derby.plugin.register(__name__, Plugin())
 
 
-# https://dmg.umamusume.jp/news/detail?id=550
-# story event: 瑞花繚乱！新春かるた合戦
+# 春のGⅠ記念ミッション　第２弾 NHKマイルC
+
 _add_compagin(
     OneTimeCampaign(
-        datetime.datetime(2021, 12, 31, 12, 0, tzinfo=JST),
-        datetime.datetime(2022, 1, 11, 11, 59, tzinfo=JST),
-        "宝塚記念",
+        datetime.datetime(2022, 5, 2, 4, 0, tzinfo=JST),
+        datetime.datetime(2022, 5, 9, 3, 59, tzinfo=JST),
+        "NHKマイルカップ",
+        order_lte=1,
+    ),
+)
+
+_add_compagin(
+    OneTimeCampaign(
+        datetime.datetime(2022, 5, 2, 4, 0, tzinfo=JST),
+        datetime.datetime(2022, 5, 9, 3, 59, tzinfo=JST),
+        "アーリントンカップ",
         order_lte=3,
     ),
 )
 
 _add_compagin(
     OneTimeCampaign(
-        datetime.datetime(2021, 12, 31, 12, 0, tzinfo=JST),
-        datetime.datetime(2022, 1, 11, 11, 59, tzinfo=JST),
-        "天皇賞（春）",
-        order_lte=3,
-    ),
-)
-
-_add_compagin(
-    OneTimeCampaign(
-        datetime.datetime(2021, 12, 31, 12, 0, tzinfo=JST),
-        datetime.datetime(2022, 1, 11, 11, 59, tzinfo=JST),
-        "ジャパンカップ",
-        order_lte=3,
-    ),
-)
-
-_add_compagin(
-    OneTimeCampaign(
-        datetime.datetime(2021, 12, 31, 12, 0, tzinfo=JST),
-        datetime.datetime(2022, 1, 11, 11, 59, tzinfo=JST),
-        "有馬記念",
-        order_lte=3,
-    ),
-)
-
-
-_add_compagin(
-    OneTimeCampaign(
-        datetime.datetime(2021, 12, 31, 12, 0, tzinfo=JST),
-        datetime.datetime(2022, 1, 11, 11, 59, tzinfo=JST),
-        "フェブラリーステークス",
-        order_lte=3,
-    ),
-)
-
-
-_add_compagin(
-    OneTimeCampaign(
-        datetime.datetime(2021, 12, 31, 12, 0, tzinfo=JST),
-        datetime.datetime(2022, 1, 11, 11, 59, tzinfo=JST),
-        "エルムステークス",
-        order_lte=3,
-    ),
-)
-
-_add_compagin(
-    OneTimeCampaign(
-        datetime.datetime(2021, 12, 31, 12, 0, tzinfo=JST),
-        datetime.datetime(2022, 1, 11, 11, 59, tzinfo=JST),
-        "JBCスプリント",
+        datetime.datetime(2022, 5, 2, 4, 0, tzinfo=JST),
+        datetime.datetime(2022, 5, 9, 3, 59, tzinfo=JST),
+        "ニュージーランドトロフィー",
         order_lte=3,
     ),
 )
