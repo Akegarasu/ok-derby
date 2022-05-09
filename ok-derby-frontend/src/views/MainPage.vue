@@ -56,7 +56,7 @@
 </template>
 <script>
 
-import BaseProgress from "../components/BaseProgress";
+// import BaseProgress from "../components/BaseProgress";
 import FastUsing from "./components/FastUsing";
 // import commandUsing from "./components/CommandUsing";
 import AllJobs from "./components/AllJobs";
@@ -64,7 +64,7 @@ import AllJobs from "./components/AllJobs";
 
 export default {
   components: {
-    BaseProgress,
+    // BaseProgress,
     FastUsing,
     // commandUsing,
     AllJobs,
