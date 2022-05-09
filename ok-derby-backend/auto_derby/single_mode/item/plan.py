@@ -4,9 +4,11 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Iterator, Sequence, Tuple
+import time
+from typing import TYPE_CHECKING, Iterator, Optional, Sequence, Tuple
 
 from .effect_summary import EffectSummary
+from .globals import g
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -18,17 +20,24 @@ if TYPE_CHECKING:
     Plan = Tuple[float, Tuple[Item, ...]]
 
 
+def _item_order(item: Item) -> int:
+    es = item.effect_summary()
+    if es.training_no_failure:
+        return 100
+    if es.vitality:
+        return 100
+    if es.training_effect_buff:
+        return 200
+    return 300
+
+
 def iterate(
     ctx: Context,
     command: Command,
     items: Sequence[Item],
     summary: EffectSummary,
 ) -> Iterator[Plan]:
-    def _with_log(p: Plan):
-        _LOGGER.debug("score: %.2f: %s", p[0], ",".join(i.name for i in p[1]))
-        return p
-
-    yield (0, ())
+    items = sorted(items, key=lambda x: (_item_order(x), -x.id))
     for index, item in enumerate(items):
         s_current = 0
         items_current: Sequence[Item] = ()
@@ -36,38 +45,54 @@ def iterate(
         for q_index in range(item.quantity):
             i = item.clone()
             i.quantity -= q_index
-            s = i.effect_score(ctx, command, es_after)
+            # round to compare plan by price,
+            # otherwise slightest difference will cause price ignored.
+            s = round(i.effect_score(ctx, command, es_after), 2)
             if s <= 0:
                 break
             s_e = i.expected_effect_score(ctx, command)
             if s < s_e:
                 break
-            es_after.add(item)
+            i.quantity = 0  # hide quantity from log
+            es_after.add(i)
             s_current += s
             items_current += (i,)
 
-            s_best, items_best = _with_log((s_current, items_current))
+            yield (s_current, items_current)
             for sub_plan in iterate(
                 ctx,
                 command,
-                (*items[:index], *items[index + 1 :]),
+                items[index + 1 :],
                 es_after,
             ):
-                s_sub, items_sub = _with_log(
-                    (s_current + sub_plan[0], (*items_current, *sub_plan[1]))
-                )
-                if s_sub > s_best:
-                    s_best, items_best = s_sub, items_sub
-            yield s_best, items_best
-
-    return
+                yield ((s_current + sub_plan[0], (*items_current, *sub_plan[1])))
 
 
 def compute(
     ctx: Context,
     command: Command,
+    *,
+    effort: Optional[float] = None,
 ) -> Plan:
-    return sorted(
-        iterate(ctx, command, tuple(ctx.items), EffectSummary()),
-        key=lambda x: (-x[0], sum(i.original_price for i in x[1])),
-    )[0]
+    effort = effort or g.default_plan_effort
+    _LOGGER.debug("start compute for: %s, effort=%d", command, effort)
+    deadline = time.perf_counter() + effort
+    plan: Plan = (0, ())
+    plan_price = 0
+    for score, items in iterate(ctx, command, tuple(ctx.items), EffectSummary()):
+        if time.perf_counter() > deadline:
+            _LOGGER.warning(
+                "effort limit reached, plan for %s may not be best", command
+            )
+            break
+        if score < plan[0]:
+            continue
+        price = sum(i.original_price for i in items)
+        if (score == plan[0]) and (price >= plan_price):
+            continue
+        plan_price = price
+        plan = (score, items)
+        _LOGGER.debug(
+            "score:\t%.2f(%d coin)\t%s", score, price, ",".join(i.name for i in items)
+        )
+    return plan

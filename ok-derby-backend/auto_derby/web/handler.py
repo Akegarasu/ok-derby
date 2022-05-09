@@ -42,6 +42,14 @@ def from_middlewares(middlewares: Sequence[Middleware]) -> Handler:
 
 def to_http_handler_class(h: Handler, methods: Sequence[Text] = ()):
     class _Handler(http.server.BaseHTTPRequestHandler):
+        protocol_version = "HTTP/1.1"
+
+        def handle(self) -> None:
+            try:
+                return super().handle()
+            except (ConnectionAbortedError, ConnectionResetError):
+                pass
+
         def do_HEAD(self):
             ctx = Context(self)
             h(ctx)

@@ -5,7 +5,8 @@ from __future__ import annotations
 
 import logging
 import os
-from typing import Any, Dict, Iterator, Sequence, Text, Tuple
+from collections import defaultdict
+from typing import Any, DefaultDict, Dict, Iterator, Sequence, Text, Tuple
 
 import cv2
 from PIL.Image import Image
@@ -20,10 +21,15 @@ from .command import CommandScene
 _LOGGER = logging.getLogger(__name__)
 
 
-def _title_image(rp: mathtools.ResizeProxy, item_img: Image) -> Image:
+def _title_image(rp: mathtools.ResizeProxy, item_img: Image, disabled: bool) -> Image:
     bbox = rp.vector4((100, 10, 383, 32), 540)
     cv_img = imagetools.cv_image(item_img.crop(bbox).convert("L"))
-    _, binary_img = cv2.threshold(cv_img, 120, 255, cv2.THRESH_BINARY_INV)
+    _, binary_img = cv2.threshold(
+        cv_img,
+        80 if disabled else 120,
+        255,
+        cv2.THRESH_BINARY_INV,
+    )
     binary_img = imagetools.auto_crop(binary_img)
     if os.getenv("DEBUG") == __name__:
         cv2.imshow("item_img", imagetools.cv_image(item_img))
@@ -34,12 +40,16 @@ def _title_image(rp: mathtools.ResizeProxy, item_img: Image) -> Image:
     return imagetools.pil_image(binary_img)
 
 
-def _recognize_quantity(rp: mathtools.ResizeProxy, item_img: Image) -> int:
-    bbox = rp.vector4((179, 43, 382, 64), 540)
+def _recognize_quantity(
+    rp: mathtools.ResizeProxy, item_img: Image, disabled: bool
+) -> int:
+    bbox = rp.vector4((179, 43, 194, 64), 540)
     cv_img = imagetools.cv_image(
         imagetools.resize(item_img.crop(bbox).convert("L"), height=32)
     )
-    _, binary_img = cv2.threshold(cv_img, 160, 255, cv2.THRESH_BINARY_INV)
+    _, binary_img = cv2.threshold(
+        cv_img, 120 if disabled else 160, 255, cv2.THRESH_BINARY_INV
+    )
     if os.getenv("DEBUG") == __name__:
         cv2.imshow("item_img", imagetools.cv_image(item_img))
         cv2.imshow("cv_img", cv_img)
@@ -50,27 +60,23 @@ def _recognize_quantity(rp: mathtools.ResizeProxy, item_img: Image) -> int:
     return int(text)
 
 
-def _recognize_disabled(rp: mathtools.ResizeProxy, item_img: Image) -> bool:
-    try:
-        next(template.match(item_img, templates.SINGLE_MODE_ITEM_MENU_USE_BUTTON))
-        return False
-    except StopIteration:
-        return True
-
-
-def _recognize_item(rp: mathtools.ResizeProxy, img: Image) -> Item:
-    v = item.from_name_image(_title_image(rp, img))
-    v.quantity = _recognize_quantity(rp, img)
-    v.disabled = _recognize_disabled(rp, img)
+def _recognize_item(rp: mathtools.ResizeProxy, img: Image, disabled: bool) -> Item:
+    v = item.from_name_image(_title_image(rp, img, disabled))
+    v.quantity = _recognize_quantity(rp, img, disabled)
+    v.disabled = disabled
     return v
 
 
-def _recognize_menu(img: Image) -> Iterator[Tuple[Item, Tuple[int, int]]]:
+def _recognize_menu(img: Image, min_y: int) -> Iterator[Tuple[Item, Tuple[int, int]]]:
     rp = mathtools.ResizeProxy(img.width)
 
-    min_y = rp.vector(130, 540)
-    for _, pos in sorted(
-        template.match(img, templates.SINGLE_MODE_ITEM_MENU_CURRENT_QUANTITY),
+    min_y = rp.vector(min_y, 540)
+    for tmpl, pos in sorted(
+        template.match(
+            img,
+            templates.SINGLE_MODE_ITEM_MENU_CURRENT_QUANTITY,
+            templates.SINGLE_MODE_ITEM_MENU_CURRENT_QUANTITY_DISABLED,
+        ),
         key=lambda x: x[1][1],
     ):
         x, y = pos
@@ -83,10 +89,16 @@ def _recognize_menu(img: Image) -> Iterator[Tuple[Item, Tuple[int, int]]]:
             rp.vector(518, 540),
             y + rp.vector(48, 540),
         )
-        yield _recognize_item(rp, img.crop(bbox)), (x + rp.vector(303, 540), y)
+        disabled = tmpl.name != templates.SINGLE_MODE_ITEM_MENU_CURRENT_QUANTITY
+        yield _recognize_item(rp, img.crop(bbox), disabled), (
+            x + rp.vector(360, 540),
+            y,
+        )
 
 
 class ItemMenuScene(Scene):
+    _item_min_y = 130
+
     def __init__(self) -> None:
         super().__init__()
         self.items = item.ItemList()
@@ -98,7 +110,7 @@ class ItemMenuScene(Scene):
         )
 
     @classmethod
-    def name(cls):
+    def name(cls) -> Text:
         return "single-mode-item-menu"
 
     @classmethod
@@ -129,7 +141,7 @@ class ItemMenuScene(Scene):
         while self._scroll.next():
             new_items = tuple(
                 i
-                for i, _ in _recognize_menu(template.screenshot())
+                for i, _ in _recognize_menu(template.screenshot(), self._item_min_y)
                 if i not in self.items
             )
             if not new_items:
@@ -149,33 +161,52 @@ class ItemMenuScene(Scene):
         ctx.items = self.items
         ctx.items_last_updated_turn = ctx.turn_count()
 
-    def use_items(self, ctx: Context, items: Sequence[Item]) -> None:
-        remains = list(items)
+    def _after_use_confirm(self, ctx: Context):
+        # wait menu disappear animation
+        action.wait_image_stable(templates.CLOSE_BUTTON)
 
-        def _use_visible_items() -> None:
-            for match, pos in _recognize_menu(template.screenshot()):
-                if match not in remains:
+    def use_items(self, ctx: Context, items: Sequence[Item]) -> None:
+        if not items:
+            return
+
+        remains: DefaultDict[int, int] = defaultdict(lambda: 0)
+        for i in items:
+            remains[i.id] += i.quantity or 1
+        selected: Sequence[Item] = []
+
+        def _select_visible_items() -> None:
+            for match, pos in _recognize_menu(template.screenshot(), self._item_min_y):
+                if match.id not in remains:
                     continue
                 if match.disabled:
                     _LOGGER.warning("skip disabled: %s", match)
-                    remains.remove(match)
+                    del remains[match.id]
                     continue
-                _LOGGER.info("use: %s", match)
-                action.tap(pos)
-                action.wait_tap_image(templates.SINGLE_MODE_ITEM_USE_BUTTON)
-                remains.remove(match)
-                ctx.items.remove(match.id, 1)
-                ctx.item_history.append(ctx, match)
-                # wait animation
-                action.wait_image_stable(templates.CLOSE_BUTTON)
-                return _use_visible_items()
+                _LOGGER.info("select: %s", match)
+                while remains[match.id]:
+                    action.tap(pos)
+                    remains[match.id] -= 1
+                    selected.append(match)
+                del remains[match.id]
+                return _select_visible_items()
 
         while self._scroll.next():
-            for i in remains:
+            for k, v in remains.items():
+                i = item.get(k)
+                i.quantity = v
                 _LOGGER.debug("use remain: %s", i)
-            _use_visible_items()
+            _select_visible_items()
             if not remains:
                 break
         self._scroll.complete()
+
+        if selected:
+            action.wait_tap_image(templates.SINGLE_MODE_SHOP_USE_CONFIRM_BUTTON)
+            action.wait_tap_image(templates.SINGLE_MODE_ITEM_USE_BUTTON)
+            self._after_use_confirm(ctx)
+            for i in selected:
+                ctx.items.remove(i.id, 1)
+                ctx.item_history.append(ctx, i)
+
         for i in remains:
             _LOGGER.warning("use remain: %s", i)

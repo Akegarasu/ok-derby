@@ -6,6 +6,8 @@ from __future__ import annotations
 from copy import deepcopy
 from typing import TYPE_CHECKING, Any, Dict, Iterator
 
+from auto_derby.character import Character
+
 if TYPE_CHECKING:
     from . import go_out
 
@@ -151,7 +153,7 @@ def _recognize_status(img: Image) -> Tuple[int, Text]:
     text_img = cv2.medianBlur(text_img, 5)
     h = cv_img.shape[0]
     imagetools.fill_area(
-        text_img, (0,), mode=cv2.RETR_LIST, size_lt=round(h * 0.2 ** 2)
+        text_img, (0,), mode=cv2.RETR_LIST, size_lt=round(h * 0.2**2)
     )
 
     if os.getenv("DEBUG") == __name__:
@@ -193,8 +195,18 @@ def _recognize_property(img: Image) -> int:
 
 def _recognize_scenario(rp: mathtools.ResizeProxy, img: Image) -> Text:
     spec = (
-        (templates.SINGLE_MODE_CLIMAX_GRADE_POINT_ICON, Context.SCENARIO_CLIMAX),
-        (templates.SINGLE_MODE_CLIMAX_RANK_POINT_ICON, Context.SCENARIO_CLIMAX),
+        (
+            template.Specification(
+                templates.SINGLE_MODE_CLIMAX_GRADE_POINT_ICON, threshold=0.8
+            ),
+            Context.SCENARIO_CLIMAX,
+        ),
+        (
+            template.Specification(
+                templates.SINGLE_MODE_CLIMAX_RANK_POINT_ICON, threshold=0.8
+            ),
+            Context.SCENARIO_CLIMAX,
+        ),
         (templates.SINGLE_MODE_AOHARU_CLASS_DETAIL_BUTTON, Context.SCENARIO_AOHARU),
         (templates.SINGLE_MODE_CLASS_DETAIL_BUTTON, Context.SCENARIO_URA),
     )
@@ -225,8 +237,10 @@ class Context:
     MOOD_GOOD = Mood.GOOD
     MOOD_VERY_GOOD = Mood.VERY_GOOD
 
-    CONDITION_HEADACHE = 5
     CONDITION_OVERWEIGHT = 4
+    CONDITION_HEADACHE = 5
+    CONDITION_SHARP = 7
+    CONDITION_CHARM = 8
 
     STATUS_S = (8, "S")
     STATUS_A = (7, "A")
@@ -261,6 +275,7 @@ class Context:
         return g.context_class()
 
     def __init__(self) -> None:
+        self.character = Character.UNKNOWN
         self.speed = 0
         self.stamina = 0
         self.power = 0
@@ -683,6 +698,8 @@ g.context_class = Context
 _CONDITION_TEMPLATES = {
     templates.SINGLE_MODE_CONDITION_HEADACHE: Context.CONDITION_HEADACHE,
     templates.SINGLE_MODE_CONDITION_OVERWEIGHT: Context.CONDITION_OVERWEIGHT,
+    templates.SINGLE_MODE_CONDITION_CHARM: Context.CONDITION_CHARM,
+    templates.SINGLE_MODE_CONDITION_SHARP: Context.CONDITION_SHARP,
 }
 
 

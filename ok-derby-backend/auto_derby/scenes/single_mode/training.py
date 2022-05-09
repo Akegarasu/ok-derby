@@ -11,12 +11,11 @@ from typing import Callable, Iterator, Optional, Tuple
 import cast_unknown as cast
 import cv2
 import numpy as np
-from auto_derby.single_mode.context import Context
 from PIL.Image import Image
 from PIL.Image import fromarray as image_from_array
 
-from ... import action, imagetools, mathtools, ocr, template, templates
-from ...single_mode import Training, training
+from ... import action, app, imagetools, mathtools, ocr, template, templates
+from ...single_mode import Context, Training, training
 from ...single_mode.training import Partner
 from ..scene import Scene, SceneHolder
 from .command import CommandScene
@@ -41,22 +40,29 @@ def _gradient(colors: Tuple[Tuple[Tuple[int, int, int], int], ...]) -> np.ndarra
 def _recognize_base_effect(img: Image) -> int:
     cv_img = imagetools.cv_image(imagetools.resize(img, height=32))
     sharpened_img = imagetools.sharpen(cv_img)
-    sharpened_img = imagetools.mix(sharpened_img, cv_img, 0.65)
+    sharpened_img = imagetools.mix(sharpened_img, cv_img, 0.4)
 
     white_outline_img = imagetools.constant_color_key(
         sharpened_img,
         (255, 255, 255),
     )
-    white_outline_img = cv2.morphologyEx(
+    white_outline_img_dilated = cv2.morphologyEx(
         white_outline_img,
         cv2.MORPH_DILATE,
-        cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3)),
+        cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5)),
+    )
+    white_outline_img_dilated = cv2.morphologyEx(
+        white_outline_img_dilated,
+        cv2.MORPH_CLOSE,
+        cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 7)),
     )
 
-    bg_mask_img = imagetools.bg_mask_by_outline(white_outline_img)
+    bg_mask_img = (
+        imagetools.bg_mask_by_outline(white_outline_img_dilated) + white_outline_img
+    )
     masked_img = cv2.copyTo(cv_img, 255 - bg_mask_img)
 
-    brown_outline_img = imagetools.constant_color_key(
+    brown_img = imagetools.constant_color_key(
         cv_img,
         (29, 62, 194),
         (24, 113, 218),
@@ -67,11 +73,9 @@ def _recognize_base_effect(img: Image) -> int:
         (59, 142, 226),
         threshold=0.85,
     )
-    brown_outline_img = cv2.morphologyEx(
-        brown_outline_img,
-        cv2.MORPH_DILATE,
-        cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3)),
-    )
+    _, non_brown_img = cv2.threshold(brown_img, 120, 255, cv2.THRESH_BINARY_INV)
+    border_brown_img = imagetools.border_flood_fill(non_brown_img)
+    brown_outline_img = cv2.copyTo(brown_img, 255 - border_brown_img)
 
     bg_mask_img = imagetools.bg_mask_by_outline(brown_outline_img)
     masked_img = cv2.copyTo(masked_img, 255 - bg_mask_img)
@@ -94,22 +98,35 @@ def _recognize_base_effect(img: Image) -> int:
     text_img = imagetools.color_key(masked_img, fill_img)
 
     text_img_extra = imagetools.constant_color_key(
-        masked_img, (175, 214, 255), threshold=0.95
+        masked_img,
+        (175, 214, 255),
+        threshold=0.95,
     )
     text_img = np.array(np.maximum(text_img, text_img_extra))
     imagetools.fill_area(text_img, (0,), size_lt=48)
 
-    if os.getenv("DEBUG") == __name__:
-        cv2.imshow("cv_img", cv_img)
-        cv2.imshow("sharpened_img", sharpened_img)
-        cv2.imshow("white_outline_img", white_outline_img)
-        cv2.imshow("brown_outline_img", brown_outline_img)
-        cv2.imshow("bg_mask_img", bg_mask_img)
-        cv2.imshow("masked_img", masked_img)
-        cv2.imshow("text_img_extra", text_img_extra)
-        cv2.imshow("text_img", text_img)
-        cv2.waitKey()
-        cv2.destroyAllWindows()
+    app.log.image(
+        "base effect",
+        img,
+        level=app.DEBUG,
+        layers={
+            "sharpened": sharpened_img,
+            "white_outline": white_outline_img,
+            "white_outline_dilated": white_outline_img_dilated,
+            "brown": brown_img,
+            "non_brown": non_brown_img,
+            "border_brown": border_brown_img,
+            "brown_outline": brown_outline_img,
+            "bg_mask": bg_mask_img,
+            "masked": masked_img,
+            "text_extra": text_img_extra,
+            "text": text_img,
+        },
+    )
+
+    if cv2.countNonZero(text_img) < 100:
+        # ignore skin match result
+        return 0
 
     # +100 has different color
     hash100 = "000000000000006600ee00ff00ff00ff004e0000000000000000000000000000"
@@ -205,7 +222,7 @@ def _recognize_red_effect(img: Image) -> int:
     )
     text_img = np.array(np.maximum(text_img_base, text_img_extra))
     h = cv_img.shape[0]
-    imagetools.fill_area(text_img, (0,), size_lt=round(h * 0.2 ** 2))
+    imagetools.fill_area(text_img, (0,), size_lt=round(h * 0.2**2))
 
     if os.getenv("DEBUG") == __name__:
         cv2.imshow("cv_img", cv_img)
@@ -290,11 +307,16 @@ def _estimate_vitality(ctx: Context, trn: Training) -> float:
     return vit_data[trn.type][trn.level - 1] / ctx.max_vitality
 
 
-def _iter_training_images():
+def _iter_training_images(static: bool):
     rp = action.resize_proxy()
     radius = rp.vector(30, 540)
     _, first_confirm_pos = action.wait_image(_TRAINING_CONFIRM)
     yield template.screenshot()
+    if static:
+        return
+    seen_confirm_pos = {
+        first_confirm_pos,
+    }
     for pos in (
         rp.vector2((78, 850), 540),
         rp.vector2((171, 850), 540),
@@ -305,8 +327,10 @@ def _iter_training_images():
         if mathtools.distance(first_confirm_pos, pos) < radius:
             continue
         action.tap(pos)
-        action.wait_image(_TRAINING_CONFIRM)
-        yield template.screenshot()
+        _, pos = action.wait_image(_TRAINING_CONFIRM)
+        if pos not in seen_confirm_pos:
+            yield template.screenshot()
+            seen_confirm_pos.add(pos)
 
 
 def _recognize_type_color(rp: mathtools.ResizeProxy, icon_img: Image) -> int:
@@ -509,11 +533,8 @@ def _recognize_soul(
     imagetools.fill_area(fg_mask2, (0,), size_lt=100)
     fg_img = cv2.copyTo(masked_img, fg_mask2)
     empty_mask = imagetools.constant_color_key(fg_img, (126, 121, 121))
+    app.log.image("soul", img, level=app.DEBUG)
     if os.getenv("DEBUG") == __name__ + "[partner]":
-        _LOGGER.debug(
-            "soul: img=%s",
-            imagetools.image_hash(img, save_path=training.g.image_path),
-        )
         cv2.imshow("soul", cv_img)
         cv2.imshow("sharpened", shapened_img)
         cv2.imshow("right_bottom_icon", imagetools.cv_image(right_bottom_icon_img))
@@ -538,11 +559,8 @@ def _recognize_partner_icon(
 ) -> Optional[training.Partner]:
     rp = mathtools.ResizeProxy(img.width)
     icon_img = img.crop(bbox)
+    app.log.image("partner icon", icon_img, level=app.DEBUG)
     if os.getenv("DEBUG") == __name__ + "[partner]":
-        _LOGGER.debug(
-            "icon: img=%s",
-            imagetools.image_hash(icon_img, save_path=training.g.image_path),
-        )
         cv2.imshow("icon_img", imagetools.cv_image(icon_img))
         cv2.waitKey()
         cv2.destroyAllWindows()
@@ -575,7 +593,7 @@ def _recognize_partner_icon(
     self.type = _recognize_type_color(rp, icon_img)
     if soul >= 0 and self.type == Partner.TYPE_OTHER:
         self.type = Partner.TYPE_TEAMMATE
-    _LOGGER.debug("partner: %s", self)
+    app.log.text("partner: %s" % self, level=app.DEBUG)
     return self
 
 
@@ -644,62 +662,59 @@ def _effect_recognitions(
 
 
 def _recognize_training(ctx: Context, img: Image) -> Training:
-    if training.g.image_path:
-        image_id = imagetools.md5(
-            imagetools.cv_image(img.convert("RGB")),
-            save_path=training.g.image_path,
-            save_mode="RGB",
-        )
-        _LOGGER.debug("from_training_scene: image=%s", image_id)
-    rp = mathtools.ResizeProxy(img.width)
+    try:
+        rp = mathtools.ResizeProxy(img.width)
 
-    self = Training.new()
-    self.confirm_position = next(
-        template.match(
-            img,
-            template.Specification(
-                templates.SINGLE_MODE_TRAINING_CONFIRM, threshold=0.8
+        self = Training.new()
+        self.confirm_position = next(
+            template.match(
+                img,
+                template.Specification(
+                    templates.SINGLE_MODE_TRAINING_CONFIRM, threshold=0.8
+                ),
+            )
+        )[1]
+        radius = rp.vector(30, 540)
+        for t, center in zip(
+            Training.ALL_TYPES,
+            (
+                rp.vector2((78, 850), 540),
+                rp.vector2((171, 850), 540),
+                rp.vector2((268, 850), 540),
+                rp.vector2((367, 850), 540),
+                rp.vector2((461, 850), 540),
             ),
-        )
-    )[1]
-    radius = rp.vector(30, 540)
-    for t, center in zip(
-        Training.ALL_TYPES,
-        (
-            rp.vector2((78, 850), 540),
-            rp.vector2((171, 850), 540),
-            rp.vector2((268, 850), 540),
-            rp.vector2((367, 850), 540),
-            rp.vector2((461, 850), 540),
-        ),
-    ):
-        if mathtools.distance(self.confirm_position, center) < radius:
-            self.type = t
-            break
-    else:
-        raise ValueError(
-            "unknown type for confirm position: %s" % self.confirm_position
+        ):
+            if mathtools.distance(self.confirm_position, center) < radius:
+                self.type = t
+                break
+        else:
+            raise ValueError(
+                "unknown type for confirm position: %s" % self.confirm_position
+            )
+
+        self.level = _recognize_level(
+            tuple(cast.list_(img.getpixel(rp.vector2((10, 200), 540)), int))
         )
 
-    self.level = _recognize_level(
-        tuple(cast.list_(img.getpixel(rp.vector2((10, 200), 540)), int))
-    )
+        for bbox_group, recognize in _effect_recognitions(ctx, rp):
+            self.speed += recognize(img.crop(bbox_group[0]))
+            self.stamina += recognize(img.crop(bbox_group[1]))
+            self.power += recognize(img.crop(bbox_group[2]))
+            self.guts += recognize(img.crop(bbox_group[3]))
+            self.wisdom += recognize(img.crop(bbox_group[4]))
+            self.skill += recognize(img.crop(bbox_group[5]))
 
-    for bbox_group, recognize in _effect_recognitions(ctx, rp):
-        self.speed += recognize(img.crop(bbox_group[0]))
-        self.stamina += recognize(img.crop(bbox_group[1]))
-        self.power += recognize(img.crop(bbox_group[2]))
-        self.guts += recognize(img.crop(bbox_group[3]))
-        self.wisdom += recognize(img.crop(bbox_group[4]))
-        self.skill += recognize(img.crop(bbox_group[5]))
-
-    # TODO: recognize vitality
-    # plugin hook
-    self._use_estimate_vitality = True  # type: ignore
-    self.vitality = _estimate_vitality(ctx, self)
-    self.failure_rate = _recognize_failure_rate(rp, self, img)
-    self.partners = tuple(_recognize_partners(ctx, img))
-
+        # TODO: recognize vitality
+        # plugin hook
+        self._use_estimate_vitality = True  # type: ignore
+        self.vitality = _estimate_vitality(ctx, self)
+        self.failure_rate = _recognize_failure_rate(rp, self, img)
+        self.partners = tuple(_recognize_partners(ctx, img))
+        app.log.image("%s" % self, img, level=app.DEBUG)
+    except Exception as ex:
+        app.log.image(("training recognition failed: %s" % ex), img, level=app.ERROR)
+        raise ex
     return self
 
 
@@ -730,16 +745,18 @@ class TrainingScene(Scene):
         ctx.scenario = ctx.SCENARIO_URA
         return self.recognize_v2(ctx)
 
-    def recognize_v2(self, ctx: Context) -> None:
+    def recognize_v2(self, ctx: Context, static: bool = False) -> None:
         with futures.ThreadPoolExecutor() as pool:
             self.trainings = tuple(
                 i.result()
                 for i in [
                     pool.submit(_recognize_training, ctx, j)
-                    for j in _iter_training_images()
+                    for j in _iter_training_images(static)
                 ]
             )
-        assert len(set(i.type for i in self.trainings)) == 5, "duplicated trainings"
+        assert len(set(i.type for i in self.trainings)) == len(
+            self.trainings
+        ), "duplicated trainings"
         ctx.trainings = self.trainings
         if not ctx.is_summer_camp:
             ctx.training_levels = {i.type: i.level for i in self.trainings}

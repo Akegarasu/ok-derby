@@ -1,1 +1,0 @@
-Training<spd=22 pow=7 ski=3 vit=-25.0% fail=0% lv=4 ptn=frd@4,tm^(50%),tm(100%),tm^(51%)>

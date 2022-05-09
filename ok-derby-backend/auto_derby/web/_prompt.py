@@ -8,11 +8,14 @@ import http
 import http.server
 import logging
 import os
+import time
 import webbrowser
-from typing import Any, Dict, Optional, Protocol, Text
+from typing import Any, Dict, Optional, Text
 
 from . import handler
 from .context import Context
+from .webview import Webview
+from ._create_server import create_server
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -26,6 +29,18 @@ class _PromptMiddleware(handler.Middleware):
         if ctx.path != "/":
             return next(ctx)
         if ctx.method == "GET":
+            # XXX: chrome memory cache not respect Cache-Control
+            if "Chrome/" in ctx.request_headers.get(
+                "User-Agent"
+            ) and "memory_cache" not in ctx.params("prevent"):
+                ctx.set_header(
+                    "location",
+                    "/?"
+                    + (ctx.query + "&" if ctx.query else "")
+                    + "prevent=memory_cache",
+                )
+                ctx.send_text(http.HTTPStatus.TEMPORARY_REDIRECT, "redirect")
+                return
             ctx.set_header("Cache-Control", "no-store")
             ctx.send_html(http.HTTPStatus.OK, self.html)
         elif ctx.method == "POST":
@@ -40,14 +55,6 @@ class _PromptMiddleware(handler.Middleware):
             ctx.request_server_shutdown()
         else:
             next(ctx)
-
-
-class Webview(Protocol):
-    def open(self, url: Text) -> None:
-        ...
-
-    def shutdown(self) -> None:
-        ...
 
 
 class _DefaultWebview(Webview):
@@ -83,6 +90,8 @@ class _DefaultWebview(Webview):
         win32api.keybd_event(win32con.VK_CONTROL, 0, win32con.KEYEVENTF_KEYUP, 0)
         win32api.keybd_event(VK_W, 0, win32con.KEYEVENTF_KEYUP, 0)
 
+        time.sleep(0.1)  # wait chrome response
+
         try:
             import win32gui
 
@@ -90,14 +99,6 @@ class _DefaultWebview(Webview):
                 win32gui.SetForegroundWindow(self.h_wnd)
         except Exception:
             pass
-
-
-class NoOpWebview(Webview):
-    def open(self, url: Text) -> None:
-        pass
-
-    def shutdown(self) -> None:
-        pass
 
 
 class g:
@@ -120,23 +121,7 @@ def prompt(
     port = port or g.default_port
     webview = webview or g.default_webview
     pm = _PromptMiddleware(html)
-    h = handler.from_middlewares((pm,) + middlewares)
-    with http.server.ThreadingHTTPServer(
-        (host, port),
-        handler.to_http_handler_class(h),
-        bind_and_activate=False,
-    ) as httpd:
-        httpd.allow_reuse_address = False
-        while True:
-            try:
-                httpd.server_bind()
-                break
-            except OSError:
-                if port >= max_port:
-                    raise
-                port += 1
-                httpd.server_address = (httpd.server_address[0], port)
-        httpd.server_activate()
+    with create_server((host, port), *(pm, *middlewares), max_port=max_port) as httpd:
         host, port = httpd.server_address
         url = f"http://{host}:{port}"
         webview.open(url)

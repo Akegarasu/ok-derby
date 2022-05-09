@@ -18,3 +18,5 @@ class g:
     name_label_similarity_threshold: Dict[int, float] = {}
     prompt_disabled = False
     explain_effect_summary = False
+    explain_score = False
+    default_plan_effort = 15.0
