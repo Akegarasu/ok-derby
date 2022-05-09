@@ -319,8 +319,8 @@ export default {
     return {
       version: {
         OK_DERBY_FRONTEND: "0.4.1",
-        OK_DERBY_BACKEND: "0.7",
-        AUTO_DERBY: "1.17.4",
+        OK_DERBY_BACKEND: "0.8",
+        AUTO_DERBY: "1.23.1",
       },
       model: {
         ADB_ADDRESS: "", // ADB Address

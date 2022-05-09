@@ -32,12 +32,12 @@
           <commandUsing />
         </div>
       </div> -->
-      <div class="row" style="margin-bottom: 10px">
+      <!-- <div class="row" style="margin-bottom: 10px">
         <div class="col justify-content-center">
           <log />
         </div>
-      </div>
-      <div class="row">
+      </div> -->
+      <!-- <div class="row">
         <div class="col justify-content-center">
           <div class="card">
             <div class="card-body">
@@ -50,7 +50,7 @@
             </div>
           </div>
         </div>
-      </div>
+      </div> -->
     </div>
   </div>
 </template>
@@ -60,7 +60,7 @@ import BaseProgress from "../components/BaseProgress";
 import FastUsing from "./components/FastUsing";
 // import commandUsing from "./components/CommandUsing";
 import AllJobs from "./components/AllJobs";
-import Log from "./components/Log";
+// import Log from "./components/Log";
 
 export default {
   components: {
@@ -68,7 +68,7 @@ export default {
     FastUsing,
     // commandUsing,
     AllJobs,
-    Log,
+    // Log,
   },
   data() {
     return {};
